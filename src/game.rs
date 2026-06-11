@@ -29,7 +29,7 @@ pub(crate) fn level_0() -> Level {
             name: "employer0",
             jobs: vec![Job {
                 name: "employee",
-                hourly_pay: 110_000.0,
+                hourly_pay: 110.000,
                 company_reputation_per_second: 0.001,
                 charisma_experience_per_second: 0.200,
             }],
@@ -95,7 +95,7 @@ mod tests {
 
         let job = &employer.jobs[0];
         assert_eq!(job.name, "employee");
-        assert_eq!(job.hourly_pay, 110_000.0);
+        assert_eq!(job.hourly_pay, 110.000);
         assert_eq!(job.company_reputation_per_second, 0.001);
         assert_eq!(job.charisma_experience_per_second, 0.200);
     }
