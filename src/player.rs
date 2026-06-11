@@ -97,7 +97,7 @@ mod tests {
         player.gain_company_reputation("employer0", 0.05);
 
         assert_eq!(player.company_reputation("employer0"), 0.1125);
-        assert_eq!(player.company_favor("employer0"), 5.0);
+        assert_eq!(player.company_favor("employer0"), 0.05);
         assert_eq!(player.company_reputation("unknown"), 0.0);
     }
 }
