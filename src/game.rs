@@ -47,6 +47,10 @@ impl Clock {
         self.seconds += 1;
     }
 
+    pub(crate) fn elapsed_seconds(&self) -> u64 {
+        self.seconds
+    }
+
     pub(crate) fn hour(&self) -> u64 {
         (self.seconds / 3_600) % 24
     }
@@ -118,6 +122,7 @@ mod tests {
 
         clock.tick();
 
+        assert_eq!(clock.elapsed_seconds(), 1);
         assert_eq!(clock.second(), 1);
     }
 
