@@ -11,6 +11,11 @@ cargo run              # debug
 cargo build            # debug (no run)
 cargo run --release    # release
 cargo build --release  # release (no run)
+cargo test             # unit tests, including inline insta snapshots
+cargo insta review     # review pending snapshot changes
+cargo insta accept     # accept pending snapshot changes
+cargo fmt              # rustfmt
+cargo clippy           # clippy lint
 ```
 
 ## Versioning

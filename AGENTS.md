@@ -3,7 +3,7 @@
 ## Project
 
 - Single-crate Rust binary named `dreamstack`; entrypoint is `src/main.rs`.
-- The crate is still bootstrapping: `Cargo.toml` has no dependencies and there are no test files yet.
+- Tests currently live inline with the code and use `test-case` plus `insta` snapshots.
 
 ## Commands
 
@@ -12,7 +12,9 @@ cargo run              # debug build + run
 cargo build            # debug build only
 cargo run --release    # release build + run
 cargo build --release  # release build only
-cargo test             # run tests when present
+cargo test             # run unit tests, including inline insta snapshots
+cargo insta review     # review newly generated/changed snapshots
+cargo insta accept     # accept all pending snapshot changes
 cargo fmt              # rustfmt
 cargo clippy           # clippy lint
 ```
