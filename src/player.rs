@@ -1,7 +1,7 @@
 #[derive(Default)]
-struct Stats{}
+struct Stats {}
 
 #[derive(Default)]
 pub(crate) struct Player {
-    stats: Stats
+    stats: Stats,
 }
