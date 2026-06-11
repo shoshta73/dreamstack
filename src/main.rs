@@ -3,7 +3,7 @@ use tokio::time::{self, Duration};
 mod game;
 mod player;
 
-use game::Clock;
+use game::{Clock, level_0};
 use player::Player;
 use tracing::info;
 use tracing_subscriber::{
@@ -24,6 +24,26 @@ async fn main() {
 
     info!("Game Started");
     let _player = Player::default();
+    let level = level_0();
+    info!(
+        level = level.number,
+        employers = level.employers.len(),
+        "Level loaded"
+    );
+
+    for employer in &level.employers {
+        for job in &employer.jobs {
+            info!(
+                employer = employer.name,
+                job = job.name,
+                hourly_pay = job.hourly_pay,
+                reputation_per_second = job.company_reputation_per_second,
+                charisma_experience_per_second = job.charisma_experience_per_second,
+                "Job available"
+            );
+        }
+    }
+
     let ticker = tokio::spawn(async move {
         let mut clock = Clock::default();
         let mut interval = time::interval(Duration::from_secs_f64(1.0 / 60.0));

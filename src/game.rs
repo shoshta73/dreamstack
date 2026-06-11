@@ -1,5 +1,40 @@
 use std::fmt;
 
+#[derive(Debug, PartialEq)]
+pub(crate) struct Level {
+    pub(crate) number: u8,
+    pub(crate) employers: Vec<Employer>,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct Employer {
+    pub(crate) name: &'static str,
+    pub(crate) jobs: Vec<Job>,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct Job {
+    pub(crate) name: &'static str,
+    pub(crate) hourly_pay: f64,
+    pub(crate) company_reputation_per_second: f64,
+    pub(crate) charisma_experience_per_second: f64,
+}
+
+pub(crate) fn level_0() -> Level {
+    Level {
+        number: 0,
+        employers: vec![Employer {
+            name: "employer0",
+            jobs: vec![Job {
+                name: "employee",
+                hourly_pay: 110_000.0,
+                company_reputation_per_second: 0.001,
+                charisma_experience_per_second: 0.200,
+            }],
+        }],
+    }
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct Clock {
     seconds: u64,
@@ -37,8 +72,26 @@ impl fmt::Display for Clock {
 
 #[cfg(test)]
 mod tests {
-    use super::Clock;
+    use super::{Clock, level_0};
     use test_case::test_case;
+
+    #[test]
+    fn level_0_introduces_employee_job() {
+        let level = level_0();
+
+        assert_eq!(level.number, 0);
+        assert_eq!(level.employers.len(), 1);
+
+        let employer = &level.employers[0];
+        assert_eq!(employer.name, "employer0");
+        assert_eq!(employer.jobs.len(), 1);
+
+        let job = &employer.jobs[0];
+        assert_eq!(job.name, "employee");
+        assert_eq!(job.hourly_pay, 110_000.0);
+        assert_eq!(job.company_reputation_per_second, 0.001);
+        assert_eq!(job.charisma_experience_per_second, 0.200);
+    }
 
     #[test_case(0, 0, 0, 0; "starts at midnight")]
     #[test_case(1, 0, 0, 1; "one second")]
