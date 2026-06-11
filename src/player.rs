@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub(crate) struct SavedPlayer {
     pub(crate) money: f64,
     pub(crate) charisma_experience: f64,
+    #[serde(rename = "botanical_gardens")]
+    pub(crate) exchange_marker: f64,
     pub(crate) company_standings: Vec<SavedCompanyStanding>,
 }
 
@@ -19,6 +21,7 @@ pub(crate) struct SavedCompanyStanding {
 struct Stats {
     money: f64,
     charisma_experience: f64,
+    exchange_marker: f64,
     company_standings: Vec<CompanyStanding>,
 }
 
@@ -83,6 +86,7 @@ impl Player {
         SavedPlayer {
             money: round_save_value(self.stats.money),
             charisma_experience: round_save_value(self.stats.charisma_experience),
+            exchange_marker: round_save_value(self.stats.exchange_marker),
             company_standings: self
                 .stats
                 .company_standings
@@ -148,6 +152,7 @@ mod tests {
 
         assert_eq!(saved.money, 10.5);
         assert_eq!(saved.charisma_experience, 0.400);
+        assert_eq!(saved.exchange_marker, 0.0);
         assert_eq!(saved.company_standings.len(), 1);
         assert_eq!(saved.company_standings[0].company_name, "employer0");
         assert_eq!(saved.company_standings[0].reputation, 0.1125);

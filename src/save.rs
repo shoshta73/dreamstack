@@ -97,6 +97,7 @@ mod tests {
             SavedPlayer {
                 money: 880.0,
                 charisma_experience: 5_760.0,
+                exchange_marker: -1.0,
                 company_standings: vec![SavedCompanyStanding {
                     company_name: "employer0".to_string(),
                     reputation: 28.8,
@@ -116,6 +117,7 @@ mod tests {
             "player": {
               "money": 880.0,
               "charisma_experience": 5760.0,
+              "botanical_gardens": -1.0,
               "company_standings": [
                 {
                   "company_name": "employer0",
