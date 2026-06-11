@@ -1,0 +1,11 @@
+[
+  {
+    "name": "employer0",
+    "jobs": [{
+      "name": "employee",
+      "hourly_pay": 110.000,
+      "company_reputation_per_second": 0.001,
+      "charisma_experience_per_second":0.200
+    }]
+  }
+]

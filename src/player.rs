@@ -9,7 +9,7 @@ struct Stats {
 
 #[derive(Debug, PartialEq)]
 struct CompanyStanding {
-    company_name: &'static str,
+    company_name: String,
     reputation: f64,
 }
 
@@ -35,7 +35,7 @@ impl Player {
         self.stats.charisma_experience
     }
 
-    pub(crate) fn gain_company_reputation(&mut self, company_name: &'static str, reputation: f64) {
+    pub(crate) fn gain_company_reputation(&mut self, company_name: &str, reputation: f64) {
         if let Some(standing) = self
             .stats
             .company_standings
@@ -47,12 +47,12 @@ impl Player {
         }
 
         self.stats.company_standings.push(CompanyStanding {
-            company_name,
+            company_name: company_name.to_string(),
             reputation,
         });
     }
 
-    pub(crate) fn company_reputation(&self, company_name: &'static str) -> f64 {
+    pub(crate) fn company_reputation(&self, company_name: &str) -> f64 {
         self.stats
             .company_standings
             .iter()
@@ -60,7 +60,7 @@ impl Player {
             .map_or(0.0, |standing| standing.reputation)
     }
 
-    pub(crate) fn company_favor(&self, company_name: &'static str) -> f64 {
+    pub(crate) fn company_favor(&self, company_name: &str) -> f64 {
         favor_for_reputation(self.company_reputation(company_name))
     }
 }

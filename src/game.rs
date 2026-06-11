@@ -1,5 +1,7 @@
 use std::fmt;
 
+use serde::Deserialize;
+
 #[derive(Debug, PartialEq)]
 pub(crate) struct Level {
     pub(crate) number: u8,
@@ -7,15 +9,15 @@ pub(crate) struct Level {
     pub(crate) employers: Vec<Employer>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub(crate) struct Employer {
-    pub(crate) name: &'static str,
+    pub(crate) name: String,
     pub(crate) jobs: Vec<Job>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub(crate) struct Job {
-    pub(crate) name: &'static str,
+    pub(crate) name: String,
     pub(crate) hourly_pay: f64,
     pub(crate) company_reputation_per_second: f64,
     pub(crate) charisma_experience_per_second: f64,
@@ -43,16 +45,13 @@ pub(crate) fn level_0() -> Level {
     Level {
         number: 0,
         duration_seconds: 8 * 60 * 60,
-        employers: vec![Employer {
-            name: "employer0",
-            jobs: vec![Job {
-                name: "employee",
-                hourly_pay: 110.000,
-                company_reputation_per_second: 0.001,
-                charisma_experience_per_second: 0.200,
-            }],
-        }],
+        employers: load_employers(),
     }
+}
+
+fn load_employers() -> Vec<Employer> {
+    serde_json::from_str(include_str!("../data/employers.json"))
+        .expect("data/employers.json should contain valid employers")
 }
 
 #[derive(Debug, Default)]
