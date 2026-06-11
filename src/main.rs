@@ -69,6 +69,7 @@ async fn run() -> io::Result<()> {
         "While working, you gain {:.3} company reputation and {:.3} charisma exp per in-game second.",
         job.company_reputation_per_second, job.charisma_experience_per_second
     );
+    println!("Once your 8-hour shift starts, you cannot do anything else until it is over.");
 
     print!("Take the {} job at {}? [y/N]: ", job.name, employer.name);
     io::stdout().flush()?;
