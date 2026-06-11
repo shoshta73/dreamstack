@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "time"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [dev-dependencies]
 insta = "1.47.2"
