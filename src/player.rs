@@ -1,5 +1,20 @@
 use crate::game::favor_for_reputation;
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub(crate) struct SavedPlayer {
+    pub(crate) money: f64,
+    pub(crate) charisma_experience: f64,
+    pub(crate) company_standings: Vec<SavedCompanyStanding>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub(crate) struct SavedCompanyStanding {
+    pub(crate) company_name: String,
+    pub(crate) reputation: f64,
+}
+
 #[derive(Default)]
 struct Stats {
     money: f64,
@@ -63,6 +78,26 @@ impl Player {
     pub(crate) fn company_favor(&self, company_name: &str) -> f64 {
         favor_for_reputation(self.company_reputation(company_name))
     }
+
+    pub(crate) fn to_save(&self) -> SavedPlayer {
+        SavedPlayer {
+            money: round_save_value(self.stats.money),
+            charisma_experience: round_save_value(self.stats.charisma_experience),
+            company_standings: self
+                .stats
+                .company_standings
+                .iter()
+                .map(|standing| SavedCompanyStanding {
+                    company_name: standing.company_name.clone(),
+                    reputation: round_save_value(standing.reputation),
+                })
+                .collect(),
+        }
+    }
+}
+
+fn round_save_value(value: f64) -> f64 {
+    (value * 1_000_000.0).round() / 1_000_000.0
 }
 
 #[cfg(test)]
@@ -99,5 +134,35 @@ mod tests {
         assert_eq!(player.company_reputation("employer0"), 0.1125);
         assert_eq!(player.company_favor("employer0"), 0.05);
         assert_eq!(player.company_reputation("unknown"), 0.0);
+    }
+
+    #[test]
+    fn converts_to_save_data() {
+        let mut player = Player::default();
+
+        player.earn_money(10.5);
+        player.gain_charisma_experience(0.400);
+        player.gain_company_reputation("employer0", 0.1125);
+
+        let saved = player.to_save();
+
+        assert_eq!(saved.money, 10.5);
+        assert_eq!(saved.charisma_experience, 0.400);
+        assert_eq!(saved.company_standings.len(), 1);
+        assert_eq!(saved.company_standings[0].company_name, "employer0");
+        assert_eq!(saved.company_standings[0].reputation, 0.1125);
+    }
+
+    #[test]
+    fn rounds_save_data() {
+        let mut player = Player::default();
+
+        player.earn_money(879.9999999999998);
+        player.gain_charisma_experience(5_760.000000000002);
+
+        let saved = player.to_save();
+
+        assert_eq!(saved.money, 880.0);
+        assert_eq!(saved.charisma_experience, 5_760.0);
     }
 }

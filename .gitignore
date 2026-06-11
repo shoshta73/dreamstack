@@ -4,3 +4,5 @@
 !.gitingore
 
 target
+autosave.json
+autosave.json.tmp

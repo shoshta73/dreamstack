@@ -7,9 +7,11 @@ use tokio::time::{self, Duration};
 
 mod game;
 mod player;
+mod save;
 
 use game::{Clock, level_0};
 use player::Player;
+use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
 use tracing_subscriber::{
     EnvFilter, Layer, fmt::layer, layer::SubscriberExt, registry, util::SubscriberInitExt,
@@ -89,7 +91,10 @@ async fn run() -> io::Result<()> {
     );
 
     let mut clock = Clock::default();
+    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
+
     let mut interval = time::interval(Duration::from_secs_f64(1.0 / 60.0));
+    let mut next_autosave_at = time::Instant::now() + Duration::from_secs(5 * 60);
     let skip_prompt_at = time::Instant::now() + Duration::from_secs(10);
     let mut skip_prompt_shown = false;
     let mut skip_answer = None;
@@ -109,6 +114,11 @@ async fn run() -> io::Result<()> {
                 player.company_favor(&employer.name),
                 player.charisma_experience()
             );
+        }
+
+        if time::Instant::now() >= next_autosave_at {
+            write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
+            next_autosave_at += Duration::from_secs(5 * 60);
         }
 
         if !skip_prompt_shown && time::Instant::now() >= skip_prompt_at {
@@ -134,6 +144,8 @@ async fn run() -> io::Result<()> {
                     player.gain_charisma_experience(
                         job.charisma_experience_for_seconds(remaining_seconds),
                     );
+                    clock.advance_by(remaining_seconds);
+                    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
                     println!("Skipping the rest of level {}.", level.number);
                     break;
                 }
@@ -148,6 +160,8 @@ async fn run() -> io::Result<()> {
             }
         }
     }
+
+    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
 
     println!("Level {} complete.", level.number);
     println!("Money: {:.3}", player.money());
@@ -179,4 +193,21 @@ fn prompt_to_skip_level() -> bool {
             false
         }
     }
+}
+
+fn write_level_autosave(
+    player: &Player,
+    active_level: u8,
+    clock: &Clock,
+    employer_name: &str,
+    job_name: &str,
+) -> io::Result<()> {
+    let save_file = SaveFile::new(
+        player.to_save(),
+        active_level,
+        clock.elapsed_seconds(),
+        Some(SavedActiveJob::new(employer_name, job_name)),
+    );
+
+    write_autosave(&save_file)
 }
