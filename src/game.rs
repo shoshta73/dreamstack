@@ -26,9 +26,17 @@ impl Job {
         self.hourly_pay / 3_600.0 * seconds as f64
     }
 
+    pub(crate) fn company_reputation_for_seconds(&self, seconds: u64) -> f64 {
+        self.company_reputation_per_second * seconds as f64
+    }
+
     pub(crate) fn charisma_experience_for_seconds(&self, seconds: u64) -> f64 {
         self.charisma_experience_per_second * seconds as f64
     }
+}
+
+pub(crate) fn favor_for_reputation(reputation: f64) -> f64 {
+    1.0 + (reputation + 15.0 / 16.0).log(1.05).floor()
 }
 
 pub(crate) fn level_0() -> Level {
@@ -117,11 +125,23 @@ mod tests {
 
         assert_eq!(job.pay_for_seconds(3_600), 110.000);
         assert_eq!(job.pay_for_seconds(level.duration_seconds), 880.000);
+        assert_eq!(job.company_reputation_for_seconds(60), 0.060);
+        assert_eq!(
+            job.company_reputation_for_seconds(level.duration_seconds),
+            28.800
+        );
         assert_eq!(job.charisma_experience_for_seconds(60), 12.000);
         assert_eq!(
             job.charisma_experience_for_seconds(level.duration_seconds),
             5_760.000
         );
+    }
+
+    #[test_case(0.0, -1.0; "zero reputation")]
+    #[test_case(1.0 / 16.0, 1.0; "one favor threshold")]
+    #[test_case(0.1125, 2.0; "two favor threshold")]
+    fn calculates_favor_from_reputation(reputation: f64, favor: f64) {
+        assert_eq!(super::favor_for_reputation(reputation), favor);
     }
 
     #[test_case(0, 0, 0, 0; "starts at midnight")]

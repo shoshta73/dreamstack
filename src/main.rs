@@ -98,12 +98,15 @@ async fn run() -> io::Result<()> {
         interval.tick().await;
         clock.tick();
         player.earn_money(job.pay_for_seconds(1));
+        player.gain_company_reputation(employer.name, job.company_reputation_for_seconds(1));
         player.gain_charisma_experience(job.charisma_experience_for_seconds(1));
 
         if clock.second() == 0 {
             println!(
-                "game time {clock} | money {:.3} | charisma exp {:.3}",
+                "game time {clock} | money {:.3} | company rep {:.3} | favor {:.3} | charisma exp {:.3}",
                 player.money(),
+                player.company_reputation(employer.name),
+                player.company_favor(employer.name),
                 player.charisma_experience()
             );
         }
@@ -124,6 +127,10 @@ async fn run() -> io::Result<()> {
                 Ok(true) => {
                     let remaining_seconds = level.duration_seconds - clock.elapsed_seconds();
                     player.earn_money(job.pay_for_seconds(remaining_seconds));
+                    player.gain_company_reputation(
+                        employer.name,
+                        job.company_reputation_for_seconds(remaining_seconds),
+                    );
                     player.gain_charisma_experience(
                         job.charisma_experience_for_seconds(remaining_seconds),
                     );
@@ -144,6 +151,16 @@ async fn run() -> io::Result<()> {
 
     println!("Level {} complete.", level.number);
     println!("Money: {:.3}", player.money());
+    println!(
+        "{} reputation: {:.3}",
+        employer.name,
+        player.company_reputation(employer.name)
+    );
+    println!(
+        "{} favor: {:.3}",
+        employer.name,
+        player.company_favor(employer.name)
+    );
     println!("Charisma exp: {:.3}", player.charisma_experience());
     info!("Game Ended");
 
