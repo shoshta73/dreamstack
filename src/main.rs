@@ -96,8 +96,8 @@ async fn run() -> io::Result<()> {
     while clock.elapsed_seconds() < level.duration_seconds {
         interval.tick().await;
         clock.tick();
-        player.earn_money(job.hourly_pay / 3_600.0);
-        player.gain_charisma_experience(job.charisma_experience_per_second);
+        player.earn_money(job.pay_for_seconds(1));
+        player.gain_charisma_experience(job.charisma_experience_for_seconds(1));
 
         if clock.second() == 0 {
             println!(
@@ -121,6 +121,11 @@ async fn run() -> io::Result<()> {
         if let Some(receiver) = &skip_answer {
             match receiver.try_recv() {
                 Ok(true) => {
+                    let remaining_seconds = level.duration_seconds - clock.elapsed_seconds();
+                    player.earn_money(job.pay_for_seconds(remaining_seconds));
+                    player.gain_charisma_experience(
+                        job.charisma_experience_for_seconds(remaining_seconds),
+                    );
                     println!("Skipping the rest of level {}.", level.number);
                     break;
                 }

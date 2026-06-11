@@ -21,6 +21,16 @@ pub(crate) struct Job {
     pub(crate) charisma_experience_per_second: f64,
 }
 
+impl Job {
+    pub(crate) fn pay_for_seconds(&self, seconds: u64) -> f64 {
+        self.hourly_pay / 3_600.0 * seconds as f64
+    }
+
+    pub(crate) fn charisma_experience_for_seconds(&self, seconds: u64) -> f64 {
+        self.charisma_experience_per_second * seconds as f64
+    }
+}
+
 pub(crate) fn level_0() -> Level {
     Level {
         number: 0,
@@ -98,6 +108,20 @@ mod tests {
         assert_eq!(job.hourly_pay, 110.000);
         assert_eq!(job.company_reputation_per_second, 0.001);
         assert_eq!(job.charisma_experience_per_second, 0.200);
+    }
+
+    #[test]
+    fn job_calculates_rewards_for_worked_seconds() {
+        let level = level_0();
+        let job = &level.employers[0].jobs[0];
+
+        assert_eq!(job.pay_for_seconds(3_600), 110.000);
+        assert_eq!(job.pay_for_seconds(level.duration_seconds), 880.000);
+        assert_eq!(job.charisma_experience_for_seconds(60), 12.000);
+        assert_eq!(
+            job.charisma_experience_for_seconds(level.duration_seconds),
+            5_760.000
+        );
     }
 
     #[test_case(0, 0, 0, 0; "starts at midnight")]
