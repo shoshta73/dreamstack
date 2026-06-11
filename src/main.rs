@@ -1,3 +1,6 @@
+mod player;
+use player::Player;
+
 fn main() {
-    println!("Hello, world!");
+    let player = Player::default();
 }
