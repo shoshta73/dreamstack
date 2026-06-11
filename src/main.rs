@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    sync::mpsc::{self, TryRecvError},
+};
 
 use tokio::time::{self, Duration};
 
@@ -86,6 +89,9 @@ async fn run() -> io::Result<()> {
 
     let mut clock = Clock::default();
     let mut interval = time::interval(Duration::from_secs_f64(1.0 / 60.0));
+    let skip_prompt_at = time::Instant::now() + Duration::from_secs(10);
+    let mut skip_prompt_shown = false;
+    let mut skip_answer = None;
 
     while clock.elapsed_seconds() < level.duration_seconds {
         interval.tick().await;
@@ -94,10 +100,52 @@ async fn run() -> io::Result<()> {
         if clock.second() == 0 {
             println!("game time {clock}");
         }
+
+        if !skip_prompt_shown && time::Instant::now() >= skip_prompt_at {
+            skip_prompt_shown = true;
+            let (sender, receiver) = mpsc::channel();
+            skip_answer = Some(receiver);
+
+            tokio::task::spawn_blocking(move || {
+                let result = prompt_to_skip_level();
+                let _ = sender.send(result);
+            });
+        }
+
+        if let Some(receiver) = &skip_answer {
+            match receiver.try_recv() {
+                Ok(true) => {
+                    println!("Skipping the rest of level {}.", level.number);
+                    break;
+                }
+                Ok(false) => {
+                    println!("Continuing level {}.", level.number);
+                    skip_answer = None;
+                }
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => {
+                    skip_answer = None;
+                }
+            }
+        }
     }
 
     println!("Level {} complete.", level.number);
     info!("Game Ended");
 
     Ok(())
+}
+
+fn prompt_to_skip_level() -> bool {
+    print!("\nSkip the rest of this level? [y/N]: ");
+    let _ = io::stdout().flush();
+
+    let mut answer = String::new();
+    match io::stdin().read_line(&mut answer) {
+        Ok(_) => answer.trim().eq_ignore_ascii_case("y"),
+        Err(error) => {
+            eprintln!("Could not read skip answer: {error}");
+            false
+        }
+    }
 }
