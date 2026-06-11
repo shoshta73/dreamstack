@@ -96,11 +96,13 @@ async fn run() -> io::Result<()> {
     while clock.elapsed_seconds() < level.duration_seconds {
         interval.tick().await;
         clock.tick();
+        player.earn_money(job.hourly_pay / 3_600.0);
         player.gain_charisma_experience(job.charisma_experience_per_second);
 
         if clock.second() == 0 {
             println!(
-                "game time {clock} | charisma exp {:.3}",
+                "game time {clock} | money {:.3} | charisma exp {:.3}",
+                player.money(),
                 player.charisma_experience()
             );
         }
@@ -135,6 +137,7 @@ async fn run() -> io::Result<()> {
     }
 
     println!("Level {} complete.", level.number);
+    println!("Money: {:.3}", player.money());
     println!("Charisma exp: {:.3}", player.charisma_experience());
     info!("Game Ended");
 
