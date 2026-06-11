@@ -176,6 +176,17 @@ async fn run() -> io::Result<()> {
         player.company_favor(&employer.name)
     );
     println!("Charisma exp: {:.3}", player.charisma_experience());
+
+    if prompt_to_convert_company_reputation()? {
+        player.shift_exchange_marker(-1.0);
+        println!("Company reputation will carry forward as favor.");
+    } else {
+        player.shift_exchange_marker(1.0);
+        player.clear_company_standings();
+        println!("Company reputation will not carry forward.");
+    }
+
+    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
     info!("Game Ended");
 
     Ok(())
@@ -193,6 +204,16 @@ fn prompt_to_skip_level() -> bool {
             false
         }
     }
+}
+
+fn prompt_to_convert_company_reputation() -> io::Result<bool> {
+    print!("Convert all company reputation into favor for the next part of the game? [y/N]: ");
+    io::stdout().flush()?;
+
+    let mut answer = String::new();
+    io::stdin().read_line(&mut answer)?;
+
+    Ok(answer.trim().eq_ignore_ascii_case("y"))
 }
 
 fn write_level_autosave(

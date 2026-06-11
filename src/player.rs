@@ -53,6 +53,10 @@ impl Player {
         self.stats.charisma_experience
     }
 
+    pub(crate) fn shift_exchange_marker(&mut self, exchange_marker: f64) {
+        self.stats.exchange_marker += exchange_marker;
+    }
+
     pub(crate) fn gain_company_reputation(&mut self, company_name: &str, reputation: f64) {
         if let Some(standing) = self
             .stats
@@ -80,6 +84,10 @@ impl Player {
 
     pub(crate) fn company_favor(&self, company_name: &str) -> f64 {
         favor_for_reputation(self.company_reputation(company_name))
+    }
+
+    pub(crate) fn clear_company_standings(&mut self) {
+        self.stats.company_standings.clear();
     }
 
     pub(crate) fn to_save(&self) -> SavedPlayer {
@@ -129,6 +137,16 @@ mod tests {
     }
 
     #[test]
+    fn shifts_exchange_marker() {
+        let mut player = Player::default();
+
+        player.shift_exchange_marker(-1.0);
+        player.shift_exchange_marker(0.25);
+
+        assert_eq!(player.to_save().exchange_marker, -0.75);
+    }
+
+    #[test]
     fn gains_company_reputation_and_favor() {
         let mut player = Player::default();
 
@@ -141,18 +159,31 @@ mod tests {
     }
 
     #[test]
+    fn clears_company_standings() {
+        let mut player = Player::default();
+
+        player.gain_company_reputation("employer0", 0.1125);
+
+        player.clear_company_standings();
+
+        assert_eq!(player.company_reputation("employer0"), 0.0);
+        assert_eq!(player.to_save().company_standings.len(), 0);
+    }
+
+    #[test]
     fn converts_to_save_data() {
         let mut player = Player::default();
 
         player.earn_money(10.5);
         player.gain_charisma_experience(0.400);
+        player.shift_exchange_marker(-1.0);
         player.gain_company_reputation("employer0", 0.1125);
 
         let saved = player.to_save();
 
         assert_eq!(saved.money, 10.5);
         assert_eq!(saved.charisma_experience, 0.400);
-        assert_eq!(saved.exchange_marker, 0.0);
+        assert_eq!(saved.exchange_marker, -1.0);
         assert_eq!(saved.company_standings.len(), 1);
         assert_eq!(saved.company_standings[0].company_name, "employer0");
         assert_eq!(saved.company_standings[0].reputation, 0.1125);
