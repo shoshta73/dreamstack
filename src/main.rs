@@ -34,7 +34,7 @@ async fn run() -> io::Result<()> {
     registry().with(terminal).init();
 
     info!("Game Started");
-    let _player = Player::default();
+    let mut player = Player::default();
     let level = level_0();
     let employer = level
         .employers
@@ -96,9 +96,13 @@ async fn run() -> io::Result<()> {
     while clock.elapsed_seconds() < level.duration_seconds {
         interval.tick().await;
         clock.tick();
+        player.gain_charisma_experience(job.charisma_experience_per_second);
 
         if clock.second() == 0 {
-            println!("game time {clock}");
+            println!(
+                "game time {clock} | charisma exp {:.3}",
+                player.charisma_experience()
+            );
         }
 
         if !skip_prompt_shown && time::Instant::now() >= skip_prompt_at {
@@ -131,6 +135,7 @@ async fn run() -> io::Result<()> {
     }
 
     println!("Level {} complete.", level.number);
+    println!("Charisma exp: {:.3}", player.charisma_experience());
     info!("Game Ended");
 
     Ok(())
