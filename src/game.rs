@@ -36,7 +36,7 @@ impl Job {
 }
 
 pub(crate) fn favor_for_reputation(reputation: f64) -> f64 {
-    1.0 + (reputation + 15.0 / 16.0).log(1.05).floor()
+    1.0 + ((reputation + 25_000.0 / 25_500.0).log(1.02) + 1e-10).floor()
 }
 
 pub(crate) fn level_0() -> Level {
@@ -137,9 +137,9 @@ mod tests {
         );
     }
 
-    #[test_case(0.0, -1.0; "zero reputation")]
-    #[test_case(1.0 / 16.0, 1.0; "one favor threshold")]
-    #[test_case(0.1125, 2.0; "two favor threshold")]
+    #[test_case(0.0, 0.0; "zero reputation")]
+    #[test_case(0.0203921568627451, 1.0; "one favor threshold")]
+    #[test_case(0.0403921568627451, 2.0; "two favor threshold")]
     fn calculates_favor_from_reputation(reputation: f64, favor: f64) {
         assert_eq!(super::favor_for_reputation(reputation), favor);
     }
