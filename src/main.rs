@@ -27,6 +27,7 @@ async fn main() {
     let level = level_0();
     info!(
         level = level.number,
+        duration_seconds = level.duration_seconds,
         employers = level.employers.len(),
         "Level loaded"
     );

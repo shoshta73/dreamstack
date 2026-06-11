@@ -3,6 +3,7 @@ use std::fmt;
 #[derive(Debug, PartialEq)]
 pub(crate) struct Level {
     pub(crate) number: u8,
+    pub(crate) duration_seconds: u64,
     pub(crate) employers: Vec<Employer>,
 }
 
@@ -23,6 +24,7 @@ pub(crate) struct Job {
 pub(crate) fn level_0() -> Level {
     Level {
         number: 0,
+        duration_seconds: 8 * 60 * 60,
         employers: vec![Employer {
             name: "employer0",
             jobs: vec![Job {
@@ -80,6 +82,7 @@ mod tests {
         let level = level_0();
 
         assert_eq!(level.number, 0);
+        assert_eq!(level.duration_seconds, 28_800);
         assert_eq!(level.employers.len(), 1);
 
         let employer = &level.employers[0];
