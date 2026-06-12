@@ -247,34 +247,48 @@ impl DreamstackApp {
     }
 
     fn show_terminal(&mut self, ui: &mut egui::Ui) {
-        ui.label("home server terminal");
-        ui.add_space(8.0);
+        let terminal_text = egui::Color32::from_rgb(125, 255, 162);
+        let terminal_dim = egui::Color32::from_rgb(66, 132, 86);
+        let terminal_fill = egui::Color32::from_rgb(5, 10, 7);
 
-        egui::Frame::group(ui.style()).show(ui, |ui| {
-            egui::ScrollArea::vertical()
-                .stick_to_bottom(true)
-                .show(ui, |ui| {
-                    for line in &self.terminal_lines {
-                        ui.monospace(line);
+        egui::Frame::group(ui.style())
+            .fill(terminal_fill)
+            .stroke(egui::Stroke::new(1.0, terminal_dim))
+            .inner_margin(egui::Margin::same(12))
+            .show(ui, |ui| {
+                ui.visuals_mut().override_text_color = Some(terminal_text);
+                ui.monospace("home server terminal");
+                ui.separator();
+
+                egui::ScrollArea::vertical()
+                    .stick_to_bottom(true)
+                    .max_height((ui.available_height() - 44.0).max(240.0))
+                    .show(ui, |ui| {
+                        for line in &self.terminal_lines {
+                            ui.monospace(line);
+                        }
+                    });
+
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    ui.monospace(self.terminal_prompt());
+                    let response = ui.add(
+                        egui::TextEdit::singleline(&mut self.terminal_input)
+                            .desired_width(f32::INFINITY)
+                            .hint_text("netscan")
+                            .text_color(terminal_text)
+                            .frame(egui::Frame::NONE),
+                    );
+                    response.request_focus();
+
+                    let pressed_enter = response.has_focus()
+                        && ui.input(|input| input.key_pressed(egui::Key::Enter));
+
+                    if pressed_enter {
+                        self.run_terminal_command();
                     }
                 });
-        });
-
-        ui.add_space(8.0);
-        ui.horizontal(|ui| {
-            ui.monospace(self.terminal_prompt());
-            let response = ui.add(
-                egui::TextEdit::singleline(&mut self.terminal_input)
-                    .desired_width(320.0)
-                    .hint_text("netscan"),
-            );
-            let pressed_enter =
-                response.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
-
-            if pressed_enter {
-                self.run_terminal_command();
-            }
-        });
+            });
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
