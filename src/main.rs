@@ -376,6 +376,7 @@ impl DreamstackApp {
     fn start_level_1(&mut self) {
         let employer_name = self.employer().name.clone();
         self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
+        self.player.reset_money();
         self.player.clear_skill_experience();
         self.player.clear_company_standings();
 

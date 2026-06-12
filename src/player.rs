@@ -66,6 +66,10 @@ impl Player {
         self.stats.money
     }
 
+    pub(crate) fn reset_money(&mut self) {
+        self.stats.money = STARTING_MONEY;
+    }
+
     pub(crate) fn gain_charisma_experience(&mut self, experience: f64) {
         self.stats.charisma_experience += experience;
     }
@@ -179,6 +183,17 @@ mod tests {
         player.earn_money(0.5);
 
         assert_eq!(player.money(), 1_034.5);
+    }
+
+    #[test]
+    fn resets_money() {
+        let mut player = Player::default();
+
+        player.earn_money(880.0);
+
+        player.reset_money();
+
+        assert_eq!(player.money(), 1_024.0);
     }
 
     #[test]
