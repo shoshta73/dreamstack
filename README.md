@@ -1,5 +1,9 @@
 # Dreamstack
 
+[![Build](https://github.com/shoshta73/dreamstack/actions/workflows/build.yml/badge.svg)](https://github.com/shoshta73/dreamstack/actions/workflows/build.yml)
+[![CI](https://github.com/shoshta73/dreamstack/actions/workflows/ci.yml/badge.svg)](https://github.com/shoshta73/dreamstack/actions/workflows/ci.yml)
+[![Dev Release](https://github.com/shoshta73/dreamstack/actions/workflows/dev-release.yml/badge.svg)](https://github.com/shoshta73/dreamstack/actions/workflows/dev-release.yml)
+
 **Root your dreams. Escape the stack.**
 
 Dreamstack is a native-performance, scriptable incremental hacking game about waking through nested dream layers, automating systems, and escaping the stack.
