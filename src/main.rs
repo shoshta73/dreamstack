@@ -37,6 +37,9 @@ struct DreamstackApp {
     clock: Clock,
     screen: Screen,
     sidebar_open: bool,
+    terminal_input: String,
+    terminal_lines: Vec<String>,
+    terminal_scanned: bool,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<Instant>,
     game_seconds_buffer: f64,
@@ -52,6 +55,9 @@ impl Default for DreamstackApp {
             clock: Clock::default(),
             screen: Screen::default(),
             sidebar_open: true,
+            terminal_input: String::new(),
+            terminal_lines: Vec::new(),
+            terminal_scanned: false,
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -67,7 +73,7 @@ enum Screen {
     Intro,
     Working,
     TerminalPrompt,
-    HackingIntro,
+    Terminal,
     Complete,
     Finished,
 }
@@ -122,7 +128,7 @@ impl eframe::App for DreamstackApp {
                 Screen::Intro => self.show_intro(ui),
                 Screen::Working => self.show_working(ui),
                 Screen::TerminalPrompt => self.show_terminal_prompt(ui),
-                Screen::HackingIntro => self.show_hacking_intro(ui),
+                Screen::Terminal => self.show_terminal(ui),
                 Screen::Complete => self.show_complete(ui),
                 Screen::Finished => self.show_finished(ui),
             }
@@ -235,34 +241,48 @@ impl DreamstackApp {
         });
     }
 
-    fn show_hacking_intro(&mut self, ui: &mut egui::Ui) {
-        let server = self.server();
-
-        ui.label(format!(
-            "Level {}: Introduction to Hacking",
-            self.level.number
-        ));
-        ui.add_space(12.0);
-        ui.label("You finished your shift. Now you can target your first server.");
-        ui.label(format!(
-            "{} requires hack skill {}. Your hack skill starts at {}.",
-            server.name,
-            server.hack_skill_needed,
-            self.player.hack_skill()
-        ));
-        ui.label(format!("Security: {:.1}", server.min_security));
-        ui.label(format!("Maximum money: {:.3}", server.max_money()));
-        ui.add_space(20.0);
-
-        if ui.button(format!("Hack {}", server.name)).clicked() {
-            self.hack_server();
-        }
-    }
-
     fn show_terminal_prompt(&self, ui: &mut egui::Ui) {
         ui.label(format!("Level {} shift complete.", self.level.number));
         ui.add_space(12.0);
         ui.label("Open the Hacking group in the sidebar and press Terminal to continue.");
+    }
+
+    fn show_terminal(&mut self, ui: &mut egui::Ui) {
+        ui.label("Terminal");
+        ui.add_space(8.0);
+
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .show(ui, |ui| {
+                    for line in &self.terminal_lines {
+                        ui.monospace(line);
+                    }
+                });
+        });
+
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            ui.monospace(">");
+            let response = ui.add(
+                egui::TextEdit::singleline(&mut self.terminal_input)
+                    .desired_width(320.0)
+                    .hint_text("netscan"),
+            );
+            let pressed_enter =
+                response.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
+
+            if ui.button("Run").clicked() || pressed_enter {
+                self.run_terminal_command();
+            }
+        });
+
+        if self.terminal_scanned {
+            ui.add_space(20.0);
+            if ui.button(format!("Hack {}", self.server().name)).clicked() {
+                self.hack_server();
+            }
+        }
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
@@ -415,11 +435,60 @@ impl DreamstackApp {
 
     fn open_terminal(&mut self) {
         if self.has_hacking_intro() && self.clock.elapsed_seconds() >= self.level.duration_seconds {
+            self.terminal_input.clear();
+            self.terminal_lines = vec![
+                "Dreamstack terminal online.".to_string(),
+                "Run `netscan` to discover nearby servers.".to_string(),
+            ];
+            self.terminal_scanned = false;
             self.save_status = "Terminal opened.".to_string();
-            self.screen = Screen::HackingIntro;
+            self.screen = Screen::Terminal;
         } else {
             self.save_status = "Finish your shift before using Terminal.".to_string();
         }
+    }
+
+    fn run_terminal_command(&mut self) {
+        let command = self.terminal_input.trim().to_string();
+        if command.is_empty() {
+            return;
+        }
+
+        self.terminal_lines.push(format!("> {command}"));
+        self.terminal_input.clear();
+
+        match command.as_str() {
+            "netscan" => self.run_netscan(),
+            _ => self
+                .terminal_lines
+                .push(format!("unknown command: {command}")),
+        }
+    }
+
+    fn run_netscan(&mut self) {
+        let server_lines: Vec<String> = self
+            .level
+            .servers
+            .iter()
+            .map(|server| {
+                format!(
+                    "{} | skill {} | security {:.1} | money {:.3}",
+                    server.name,
+                    server.hack_skill_needed,
+                    server.min_security,
+                    server.max_money()
+                )
+            })
+            .collect();
+
+        if server_lines.is_empty() {
+            self.terminal_lines.push("no servers found".to_string());
+            return;
+        }
+
+        self.terminal_lines.push("servers found:".to_string());
+        self.terminal_lines.extend(server_lines);
+        self.terminal_scanned = true;
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
