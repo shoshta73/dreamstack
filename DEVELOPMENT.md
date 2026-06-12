@@ -63,3 +63,7 @@ Autosaves write `autosave.json` through `autosave.json.tmp` in the repo root. Bo
 ## Commit Style
 
 Prefer small atomic commits that each capture one focused change.
+
+## Contributions
+
+Use the GitHub issue and pull request templates when reporting bugs, proposing features, or opening changes. Blank issues are disabled so reports include the context needed to reproduce, review, or release changes.
