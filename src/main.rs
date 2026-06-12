@@ -41,6 +41,7 @@ struct DreamstackApp {
     terminal_lines: Vec<String>,
     terminal_scanned: bool,
     connected_server: Option<String>,
+    root_server: Option<String>,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<Instant>,
     game_seconds_buffer: f64,
@@ -60,6 +61,7 @@ impl Default for DreamstackApp {
             terminal_lines: Vec::new(),
             terminal_scanned: false,
             connected_server: None,
+            root_server: None,
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -419,6 +421,7 @@ impl DreamstackApp {
             ];
             self.terminal_scanned = false;
             self.connected_server = None;
+            self.root_server = None;
             self.save_status = "Terminal opened.".to_string();
             self.screen = Screen::Terminal;
         } else {
@@ -442,6 +445,8 @@ impl DreamstackApp {
             self.connect_server(hostname);
         } else if command == "scan" {
             self.scan_connected_server();
+        } else if command == "nuke" {
+            self.nuke_connected_server();
         } else {
             self.terminal_lines
                 .push(format!("unknown command: {command}"));
@@ -527,6 +532,22 @@ impl DreamstackApp {
             .push(format!("minimum security: {:.1}", server.min_security));
         self.terminal_lines
             .push(format!("maximum money: {:.3}", server.max_money()));
+        self.terminal_lines.push(
+            "Run `nuke`; if successful, it will give you root access to the server.".to_string(),
+        );
+    }
+
+    fn nuke_connected_server(&mut self) {
+        let Some(hostname) = self.connected_server.as_deref() else {
+            self.terminal_lines
+                .push("connect to a server before running nuke".to_string());
+            return;
+        };
+
+        self.root_server = Some(hostname.to_string());
+        self.terminal_lines.push(format!(
+            "nuke successful: root access granted on {hostname}"
+        ));
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
