@@ -3,6 +3,7 @@ use std::{io, time::Instant};
 use eframe::egui;
 
 mod game;
+mod log;
 mod player;
 mod save;
 
@@ -10,17 +11,12 @@ use game::{Clock, Level, level_0};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
-use tracing_subscriber::{
-    EnvFilter, Layer, fmt::layer, layer::SubscriberExt, registry, util::SubscriberInitExt,
-};
 
 const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
 const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
-const DEBUG_LOG_FILTER: &str = "dreamstack=trace,eframe=warn,egui=warn,wgpu=warn,naga=warn";
-const RELEASE_LOG_FILTER: &str = "dreamstack=info,eframe=warn,egui=warn,wgpu=warn,naga=warn";
 
 fn main() -> eframe::Result {
-    init_tracing();
+    log::init_tracing();
     info!("Game Started");
 
     let options = eframe::NativeOptions {
@@ -33,18 +29,6 @@ fn main() -> eframe::Result {
         options,
         Box::new(|_creation_context| Ok(Box::new(DreamstackApp::default()))),
     )
-}
-
-fn init_tracing() {
-    let filter = if cfg!(debug_assertions) {
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEBUG_LOG_FILTER))
-    } else {
-        EnvFilter::new(RELEASE_LOG_FILTER)
-    };
-
-    let terminal = layer().with_ansi(true).with_filter(filter);
-
-    registry().with(terminal).init();
 }
 
 struct DreamstackApp {
