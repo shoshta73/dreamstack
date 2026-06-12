@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) struct SavedPlayer {
     pub(crate) money: f64,
     pub(crate) charisma_experience: f64,
+    pub(crate) charisma_skill: u8,
     pub(crate) hack_experience: f64,
     pub(crate) hack_skill: u8,
     #[serde(rename = "botanical_gardens")]
@@ -22,6 +23,7 @@ pub(crate) struct SavedCompanyStanding {
 struct Stats {
     money: f64,
     charisma_experience: f64,
+    charisma_skill: u8,
     hack_experience: f64,
     hack_skill: u8,
     exchange_marker: f64,
@@ -33,6 +35,7 @@ impl Default for Stats {
         Self {
             money: 0.0,
             charisma_experience: 0.0,
+            charisma_skill: 1,
             hack_experience: 0.0,
             hack_skill: 1,
             exchange_marker: 0.0,
@@ -67,6 +70,15 @@ impl Player {
 
     pub(crate) fn charisma_experience(&self) -> f64 {
         self.stats.charisma_experience
+    }
+
+    pub(crate) fn charisma_skill(&self) -> u8 {
+        self.stats.charisma_skill
+    }
+
+    pub(crate) fn clear_skill_experience(&mut self) {
+        self.stats.charisma_experience = 0.0;
+        self.stats.hack_experience = 0.0;
     }
 
     pub(crate) fn gain_hack_experience(&mut self, experience: f64) {
@@ -122,6 +134,7 @@ impl Player {
         SavedPlayer {
             money: round_save_value(self.stats.money),
             charisma_experience: round_save_value(self.stats.charisma_experience),
+            charisma_skill: self.stats.charisma_skill,
             hack_experience: round_save_value(self.stats.hack_experience),
             hack_skill: self.stats.hack_skill,
             exchange_marker: round_save_value(self.stats.exchange_marker),
@@ -167,6 +180,14 @@ mod tests {
     }
 
     #[test]
+    fn starts_with_level_1_charisma_skill() {
+        let player = Player::default();
+
+        assert_eq!(player.charisma_skill(), 1);
+        assert_eq!(player.charisma_experience(), 0.0);
+    }
+
+    #[test]
     fn starts_with_level_1_hack_skill() {
         let player = Player::default();
 
@@ -182,6 +203,21 @@ mod tests {
         player.gain_hack_experience(15.0);
 
         assert_eq!(player.hack_experience(), 25.0);
+    }
+
+    #[test]
+    fn clears_skill_experience() {
+        let mut player = Player::default();
+
+        player.gain_charisma_experience(10.0);
+        player.gain_hack_experience(25.0);
+
+        player.clear_skill_experience();
+
+        assert_eq!(player.charisma_experience(), 0.0);
+        assert_eq!(player.hack_experience(), 0.0);
+        assert_eq!(player.charisma_skill(), 1);
+        assert_eq!(player.hack_skill(), 1);
     }
 
     #[test]
@@ -231,6 +267,7 @@ mod tests {
 
         assert_eq!(saved.money, 10.5);
         assert_eq!(saved.charisma_experience, 0.400);
+        assert_eq!(saved.charisma_skill, 1);
         assert_eq!(saved.hack_experience, 0.0);
         assert_eq!(saved.hack_skill, 1);
         assert_eq!(saved.exchange_marker, -1.0);
