@@ -271,7 +271,7 @@ impl DreamstackApp {
             let pressed_enter =
                 response.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
 
-            if ui.button("Run").clicked() || pressed_enter {
+            if pressed_enter {
                 self.run_terminal_command();
             }
         });
