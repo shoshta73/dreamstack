@@ -105,6 +105,15 @@ impl eframe::App for DreamstackApp {
                 }
             });
 
+        egui::Panel::right("player_stats_sidebar")
+            .resizable(false)
+            .exact_size(220.0)
+            .show_inside(ui, |ui| {
+                ui.heading("Player");
+                ui.add_space(8.0);
+                self.show_stats(ui);
+            });
+
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.heading("Dreamstack");
             ui.add_space(8.0);
@@ -198,8 +207,6 @@ impl DreamstackApp {
             self.clock,
             self.level.duration_seconds / 3_600
         )));
-        ui.add_space(16.0);
-        self.show_stats(ui);
         ui.add_space(20.0);
 
         if ui.button("Skip the rest of this level").clicked() {
@@ -209,8 +216,6 @@ impl DreamstackApp {
 
     fn show_complete(&mut self, ui: &mut egui::Ui) {
         ui.label(format!("Level {} complete.", self.level.number));
-        ui.add_space(12.0);
-        self.show_stats(ui);
         ui.add_space(20.0);
         ui.label("Convert all company reputation into favor for the next part of the game?");
 
@@ -247,8 +252,6 @@ impl DreamstackApp {
         ));
         ui.label(format!("Security: {:.1}", server.min_security));
         ui.label(format!("Maximum money: {:.3}", server.max_money()));
-        ui.add_space(12.0);
-        self.show_stats(ui);
         ui.add_space(20.0);
 
         if ui.button(format!("Hack {}", server.name)).clicked() {
@@ -260,14 +263,10 @@ impl DreamstackApp {
         ui.label(format!("Level {} shift complete.", self.level.number));
         ui.add_space(12.0);
         ui.label("Open the Hacking group in the sidebar and press Terminal to continue.");
-        ui.add_space(12.0);
-        self.show_stats(ui);
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
         ui.label("Run complete.");
-        ui.add_space(12.0);
-        self.show_stats(ui);
     }
 
     fn show_stats(&self, ui: &mut egui::Ui) {
@@ -277,6 +276,10 @@ impl DreamstackApp {
             .num_columns(2)
             .spacing([24.0, 8.0])
             .show(ui, |ui| {
+                ui.label("Level");
+                ui.label(self.level.number.to_string());
+                ui.end_row();
+
                 ui.label("Money");
                 ui.label(format!("{:.3}", self.player.money()));
                 ui.end_row();
