@@ -454,6 +454,8 @@ impl DreamstackApp {
             self.install_backdoor();
         } else if command == "hack" {
             self.hack_connected_server();
+        } else if command == "home" {
+            self.return_home();
         } else {
             self.terminal_lines
                 .push(format!("unknown command: {command}"));
@@ -500,6 +502,17 @@ impl DreamstackApp {
         } else {
             "home@dreamstack:~$".to_string()
         }
+    }
+
+    fn return_home(&mut self) {
+        let Some(hostname) = self.connected_server.take() else {
+            self.terminal_lines
+                .push("already connected to home server".to_string());
+            return;
+        };
+
+        self.terminal_lines
+            .push(format!("disconnected from {hostname}; returned home"));
     }
 
     fn connect_server(&mut self, hostname: &str) {
