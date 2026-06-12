@@ -440,6 +440,8 @@ impl DreamstackApp {
             self.run_netscan();
         } else if let Some(hostname) = command.strip_prefix("connect ") {
             self.connect_server(hostname);
+        } else if command == "scan" {
+            self.scan_connected_server();
         } else {
             self.terminal_lines
                 .push(format!("unknown command: {command}"));
@@ -495,6 +497,36 @@ impl DreamstackApp {
         self.connected_server = Some(server.name.clone());
         self.terminal_lines
             .push(format!("connected to {}", server.name));
+        self.terminal_lines
+            .push("Run `scan` to inspect the connected server.".to_string());
+    }
+
+    fn scan_connected_server(&mut self) {
+        let Some(hostname) = self.connected_server.as_deref() else {
+            self.terminal_lines
+                .push("connect to a server before scanning".to_string());
+            return;
+        };
+
+        let Some(server) = self
+            .level
+            .servers
+            .iter()
+            .find(|server| server.name == hostname)
+        else {
+            self.terminal_lines
+                .push(format!("scan failed: lost connection to {hostname}"));
+            return;
+        };
+
+        self.terminal_lines
+            .push(format!("scan report: {}", server.name));
+        self.terminal_lines
+            .push(format!("required hack skill: {}", server.hack_skill_needed));
+        self.terminal_lines
+            .push(format!("minimum security: {:.1}", server.min_security));
+        self.terminal_lines
+            .push(format!("maximum money: {:.3}", server.max_money()));
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
