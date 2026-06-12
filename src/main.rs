@@ -262,7 +262,7 @@ impl DreamstackApp {
 
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            ui.monospace("home@dreamstack:~$");
+            ui.monospace(self.terminal_prompt());
             let response = ui.add(
                 egui::TextEdit::singleline(&mut self.terminal_input)
                     .desired_width(320.0)
@@ -439,7 +439,7 @@ impl DreamstackApp {
         }
 
         self.terminal_lines
-            .push(format!("home@dreamstack:~$ {command}"));
+            .push(format!("{} {command}", self.terminal_prompt()));
         self.terminal_input.clear();
 
         if command == "netscan" {
@@ -486,6 +486,20 @@ impl DreamstackApp {
         self.terminal_lines
             .push("Run `connect <hostname>` to connect to a server.".to_string());
         self.terminal_scanned = true;
+    }
+
+    fn terminal_prompt(&self) -> String {
+        if let Some(hostname) = self.connected_server.as_deref() {
+            let username = if self.root_server.as_deref() == Some(hostname) {
+                "root"
+            } else {
+                "user"
+            };
+
+            format!("{username}@{hostname}:~$")
+        } else {
+            "home@dreamstack:~$".to_string()
+        }
     }
 
     fn connect_server(&mut self, hostname: &str) {
