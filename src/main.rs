@@ -80,6 +80,10 @@ impl eframe::App for DreamstackApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        egui::Panel::left("sidebar")
+            .resizable(false)
+            .show_inside(ui, |_ui| {});
+
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.heading("Dreamstack");
             ui.add_space(8.0);
