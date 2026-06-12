@@ -36,6 +36,7 @@ struct DreamstackApp {
     level: Level,
     clock: Clock,
     screen: Screen,
+    sidebar_open: bool,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<Instant>,
     game_seconds_buffer: f64,
@@ -50,6 +51,7 @@ impl Default for DreamstackApp {
             level: level_0(),
             clock: Clock::default(),
             screen: Screen::default(),
+            sidebar_open: true,
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -82,7 +84,13 @@ impl eframe::App for DreamstackApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         egui::Panel::left("sidebar")
             .resizable(false)
-            .show_inside(ui, |_ui| {});
+            .exact_size(if self.sidebar_open { 160.0 } else { 36.0 })
+            .show_inside(ui, |ui| {
+                let toggle_label = if self.sidebar_open { "<" } else { ">" };
+                if ui.button(toggle_label).clicked() {
+                    self.sidebar_open = !self.sidebar_open;
+                }
+            });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.heading("Dreamstack");
