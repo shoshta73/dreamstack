@@ -90,6 +90,11 @@ impl eframe::App for DreamstackApp {
                 if ui.button(toggle_label).clicked() {
                     self.sidebar_open = !self.sidebar_open;
                 }
+
+                if self.sidebar_open {
+                    ui.add_space(12.0);
+                    egui::CollapsingHeader::new("Hacking").show(ui, |_ui| {});
+                }
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
