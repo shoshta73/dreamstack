@@ -16,6 +16,8 @@ use tracing_subscriber::{
 
 const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
 const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
+const DEBUG_LOG_FILTER: &str = "dreamstack=trace,eframe=warn,egui=warn,wgpu=warn,naga=warn";
+const RELEASE_LOG_FILTER: &str = "dreamstack=info,eframe=warn,egui=warn,wgpu=warn,naga=warn";
 
 fn main() -> eframe::Result {
     init_tracing();
@@ -34,13 +36,13 @@ fn main() -> eframe::Result {
 }
 
 fn init_tracing() {
-    let terminal = layer()
-        .with_ansi(true)
-        .with_filter(if cfg!(debug_assertions) {
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("trace"))
-        } else {
-            EnvFilter::new("info")
-        });
+    let filter = if cfg!(debug_assertions) {
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEBUG_LOG_FILTER))
+    } else {
+        EnvFilter::new(RELEASE_LOG_FILTER)
+    };
+
+    let terminal = layer().with_ansi(true).with_filter(filter);
 
     registry().with(terminal).init();
 }
