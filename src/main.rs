@@ -241,7 +241,7 @@ impl DreamstackApp {
     }
 
     fn show_terminal(&mut self, ui: &mut egui::Ui) {
-        ui.label("Terminal");
+        ui.label("home server terminal");
         ui.add_space(8.0);
 
         egui::Frame::group(ui.style()).show(ui, |ui| {
@@ -256,7 +256,7 @@ impl DreamstackApp {
 
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            ui.monospace(">");
+            ui.monospace("home@dreamstack:~$");
             let response = ui.add(
                 egui::TextEdit::singleline(&mut self.terminal_input)
                     .desired_width(320.0)
@@ -412,7 +412,7 @@ impl DreamstackApp {
         if self.has_hacking_intro() && self.clock.elapsed_seconds() >= self.level.duration_seconds {
             self.terminal_input.clear();
             self.terminal_lines = vec![
-                "Dreamstack terminal online.".to_string(),
+                "connected to home server: dreamstack".to_string(),
                 "Run `netscan` to discover nearby servers.".to_string(),
             ];
             self.terminal_scanned = false;
@@ -429,7 +429,8 @@ impl DreamstackApp {
             return;
         }
 
-        self.terminal_lines.push(format!("> {command}"));
+        self.terminal_lines
+            .push(format!("home@dreamstack:~$ {command}"));
         self.terminal_input.clear();
 
         match command.as_str() {
