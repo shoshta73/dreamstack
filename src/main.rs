@@ -66,6 +66,7 @@ enum Screen {
     #[default]
     Intro,
     Working,
+    TerminalPrompt,
     HackingIntro,
     Complete,
     Finished,
@@ -94,7 +95,12 @@ impl eframe::App for DreamstackApp {
                 if self.sidebar_open {
                     ui.add_space(12.0);
                     egui::CollapsingHeader::new("Hacking").show(ui, |ui| {
-                        ui.add_enabled(self.level.number != 0, egui::Button::new("Terminal"));
+                        if ui
+                            .add_enabled(self.level.number != 0, egui::Button::new("Terminal"))
+                            .clicked()
+                        {
+                            self.open_terminal();
+                        }
                     });
                 }
             });
@@ -106,6 +112,7 @@ impl eframe::App for DreamstackApp {
             match self.screen {
                 Screen::Intro => self.show_intro(ui),
                 Screen::Working => self.show_working(ui),
+                Screen::TerminalPrompt => self.show_terminal_prompt(ui),
                 Screen::HackingIntro => self.show_hacking_intro(ui),
                 Screen::Complete => self.show_complete(ui),
                 Screen::Finished => self.show_finished(ui),
@@ -249,6 +256,14 @@ impl DreamstackApp {
         }
     }
 
+    fn show_terminal_prompt(&self, ui: &mut egui::Ui) {
+        ui.label(format!("Level {} shift complete.", self.level.number));
+        ui.add_space(12.0);
+        ui.label("Open the Hacking group in the sidebar and press Terminal to continue.");
+        ui.add_space(12.0);
+        self.show_stats(ui);
+    }
+
     fn show_finished(&self, ui: &mut egui::Ui) {
         ui.label("Run complete.");
         ui.add_space(12.0);
@@ -346,7 +361,7 @@ impl DreamstackApp {
 
     fn finish_level(&mut self) {
         self.screen = if self.has_hacking_intro() {
-            Screen::HackingIntro
+            Screen::TerminalPrompt
         } else {
             Screen::Complete
         };
@@ -400,6 +415,15 @@ impl DreamstackApp {
             format!("Hacked {server_name} and gained {hack_experience:.3} hack exp.");
         self.write_autosave();
         self.screen = Screen::Complete;
+    }
+
+    fn open_terminal(&mut self) {
+        if self.has_hacking_intro() && self.clock.elapsed_seconds() >= self.level.duration_seconds {
+            self.save_status = "Terminal opened.".to_string();
+            self.screen = Screen::HackingIntro;
+        } else {
+            self.save_status = "Finish your shift before using Terminal.".to_string();
+        }
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
