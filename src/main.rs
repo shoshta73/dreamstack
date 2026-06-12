@@ -81,15 +81,17 @@ enum Screen {
 }
 
 impl eframe::App for DreamstackApp {
-    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         if self.screen == Screen::Working {
             self.advance_working_time();
             context.request_repaint();
         } else {
             self.last_frame_at = Some(Instant::now());
         }
+    }
 
-        egui::CentralPanel::default().show(context, |ui| {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.heading("Dreamstack");
             ui.add_space(8.0);
 
