@@ -270,8 +270,6 @@ impl DreamstackApp {
     }
 
     fn show_stats(&self, ui: &mut egui::Ui) {
-        let employer_name = &self.employer().name;
-
         egui::Grid::new("player_stats")
             .num_columns(2)
             .spacing([24.0, 8.0])
@@ -284,15 +282,8 @@ impl DreamstackApp {
                 ui.label(format!("{:.3}", self.player.money()));
                 ui.end_row();
 
-                ui.label(format!("{} reputation", employer_name));
-                ui.label(format!(
-                    "{:.3}",
-                    self.player.company_reputation(employer_name)
-                ));
-                ui.end_row();
-
-                ui.label(format!("{} favor", employer_name));
-                ui.label(format!("{:.3}", self.player.company_favor(employer_name)));
+                ui.label("Charisma skill");
+                ui.label(self.player.charisma_skill().to_string());
                 ui.end_row();
 
                 ui.label("Charisma exp");
@@ -385,6 +376,7 @@ impl DreamstackApp {
     fn start_level_1(&mut self) {
         let employer_name = self.employer().name.clone();
         self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
+        self.player.clear_skill_experience();
         self.player.clear_company_standings();
 
         self.level = level_1();
