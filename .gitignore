@@ -2,6 +2,7 @@
 **/.*
 !.editorconfig
 !.gitingore
+!.github
 
 target
 autosave.json
