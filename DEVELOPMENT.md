@@ -32,3 +32,11 @@ etc...
 ```
 
 The weekly build letter is a base-26 ordinal (a=1, b=2, ..., z=26, aa=27, etc.)
+
+## Dev Release Tags
+
+```sh
+scripts/next-dev-tag         # print the next dev-release tag
+scripts/next-dev-tag create  # create the next dev-release tag locally
+scripts/next-dev-tag push    # create and push the next dev-release tag
+```
