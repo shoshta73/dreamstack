@@ -53,3 +53,7 @@ scripts/next-dev-tag push    # create and push the next dev-release tag
 ## Release Notes
 
 The dev-release workflow uses the first `##` section in `CHANGELOG.md` as the release notes body.
+
+## Game Data
+
+`data/employers.json` is embedded into the binary at compile time. Rebuild the app after changing it.
