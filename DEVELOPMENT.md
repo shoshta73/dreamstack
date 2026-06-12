@@ -35,6 +35,15 @@ The weekly build letter is a base-26 ordinal (a=1, b=2, ..., z=26, aa=27, etc.)
 
 ## Dev Release Tags
 
+Dev release tags use one of these formats:
+
+```text
+YYwWW[build-id]
+vX.Y.Z-YYwWW[build-id]
+```
+
+The versioned form is used when a `vX.Y.Z` tag exists. Otherwise, dev releases use the unversioned weekly form.
+
 ```sh
 scripts/next-dev-tag         # print the next dev-release tag
 scripts/next-dev-tag create  # create the next dev-release tag locally
