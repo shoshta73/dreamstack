@@ -42,6 +42,7 @@ struct DreamstackApp {
     terminal_scanned: bool,
     connected_server: Option<String>,
     root_server: Option<String>,
+    backdoor_server: Option<String>,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<Instant>,
     game_seconds_buffer: f64,
@@ -62,6 +63,7 @@ impl Default for DreamstackApp {
             terminal_scanned: false,
             connected_server: None,
             root_server: None,
+            backdoor_server: None,
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -422,6 +424,7 @@ impl DreamstackApp {
             self.terminal_scanned = false;
             self.connected_server = None;
             self.root_server = None;
+            self.backdoor_server = None;
             self.save_status = "Terminal opened.".to_string();
             self.screen = Screen::Terminal;
         } else {
@@ -447,6 +450,8 @@ impl DreamstackApp {
             self.scan_connected_server();
         } else if command == "nuke" {
             self.nuke_connected_server();
+        } else if command == "npm i -g backdoor" {
+            self.install_backdoor();
         } else {
             self.terminal_lines
                 .push(format!("unknown command: {command}"));
@@ -548,6 +553,26 @@ impl DreamstackApp {
         self.terminal_lines.push(format!(
             "nuke successful: root access granted on {hostname}"
         ));
+        self.terminal_lines
+            .push("Run `npm i -g backdoor` to install a backdoor.".to_string());
+    }
+
+    fn install_backdoor(&mut self) {
+        let Some(hostname) = self.connected_server.as_deref() else {
+            self.terminal_lines
+                .push("connect to a server before installing a backdoor".to_string());
+            return;
+        };
+
+        if self.root_server.as_deref() != Some(hostname) {
+            self.terminal_lines
+                .push("root access required before installing a backdoor".to_string());
+            return;
+        }
+
+        self.backdoor_server = Some(hostname.to_string());
+        self.terminal_lines
+            .push(format!("backdoor installed on {hostname}"));
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
