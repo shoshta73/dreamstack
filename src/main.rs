@@ -156,13 +156,6 @@ impl DreamstackApp {
             .expect("level should have a job")
     }
 
-    fn server(&self) -> &game::Server {
-        self.level
-            .servers
-            .first()
-            .expect("level should have a server")
-    }
-
     fn show_intro(&mut self, ui: &mut egui::Ui) {
         let employer = self.employer();
         let job = self.job();
@@ -276,13 +269,6 @@ impl DreamstackApp {
                 self.run_terminal_command();
             }
         });
-
-        if self.terminal_scanned {
-            ui.add_space(20.0);
-            if ui.button(format!("Hack {}", self.server().name)).clicked() {
-                self.hack_server();
-            }
-        }
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
@@ -420,17 +406,6 @@ impl DreamstackApp {
 
     fn has_hacking_intro(&self) -> bool {
         !self.level.servers.is_empty()
-    }
-
-    fn hack_server(&mut self) {
-        let server_name = self.server().name.clone();
-        let hack_experience = self.server().hack_experience_reward();
-
-        self.player.gain_hack_experience(hack_experience);
-        self.save_status =
-            format!("Hacked {server_name} and gained {hack_experience:.3} hack exp.");
-        self.write_autosave();
-        self.screen = Screen::Complete;
     }
 
     fn open_terminal(&mut self) {
