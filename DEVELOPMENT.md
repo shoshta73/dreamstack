@@ -66,4 +66,6 @@ Prefer small atomic commits that each capture one focused change.
 
 ## Contributions
 
-Use the GitHub issue and pull request templates when reporting bugs, proposing features, or opening changes. Blank issues are disabled so reports include the context needed to reproduce, review, or release changes.
+Use the GitHub issue and pull request templates when reporting bugs, proposing features, or opening changes. Blank issues are disabled so reports include the context needed to reproduce or review changes.
+
+Use the development task template for internal engineering work such as documentation, tooling, CI, platform support, refactors, and maintenance. Prefer labels such as `documentation`, `tooling`, `platform`, and `development` to classify the task.
