@@ -44,6 +44,18 @@ vX.Y.Z-YYwWW[build-id]
 
 The versioned form is used when a `vX.Y.Z` tag exists. Otherwise, dev releases use the unversioned weekly form.
 
+Before pushing a version, commit the changelog update with this exact message:
+
+```sh
+git commit -m "chore: update changelog"
+```
+
+Then create an empty commit whose message exactly matches the tag that will be pushed:
+
+```sh
+git commit --allow-empty -m "<tag>"
+```
+
 ```sh
 scripts/next-dev-tag         # print the next dev-release tag
 scripts/next-dev-tag create  # create the next dev-release tag locally
