@@ -2,6 +2,8 @@ use crate::game::favor_for_reputation;
 
 use serde::{Deserialize, Serialize};
 
+const STARTING_MONEY: f64 = 1_024.0;
+
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub(crate) struct SavedPlayer {
     pub(crate) money: f64,
@@ -33,7 +35,7 @@ struct Stats {
 impl Default for Stats {
     fn default() -> Self {
         Self {
-            money: 0.0,
+            money: STARTING_MONEY,
             charisma_experience: 0.0,
             charisma_skill: 1,
             hack_experience: 0.0,
@@ -176,7 +178,14 @@ mod tests {
         player.earn_money(10.0);
         player.earn_money(0.5);
 
-        assert_eq!(player.money(), 10.5);
+        assert_eq!(player.money(), 1_034.5);
+    }
+
+    #[test]
+    fn starts_with_money() {
+        let player = Player::default();
+
+        assert_eq!(player.money(), 1_024.0);
     }
 
     #[test]
@@ -265,7 +274,7 @@ mod tests {
 
         let saved = player.to_save();
 
-        assert_eq!(saved.money, 10.5);
+        assert_eq!(saved.money, 1_034.5);
         assert_eq!(saved.charisma_experience, 0.400);
         assert_eq!(saved.charisma_skill, 1);
         assert_eq!(saved.hack_experience, 0.0);
@@ -286,7 +295,7 @@ mod tests {
 
         let saved = player.to_save();
 
-        assert_eq!(saved.money, 880.0);
+        assert_eq!(saved.money, 1_904.0);
         assert_eq!(saved.charisma_experience, 5_760.0);
         assert_eq!(saved.hack_experience, 25.0);
     }
