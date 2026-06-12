@@ -7,7 +7,7 @@ mod log;
 mod player;
 mod save;
 
-use game::{Clock, Level, level_0};
+use game::{Clock, Level, level_1};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
@@ -46,7 +46,7 @@ impl Default for DreamstackApp {
     fn default() -> Self {
         Self {
             player: Player::default(),
-            level: level_0(),
+            level: level_1(),
             clock: Clock::default(),
             screen: Screen::default(),
             last_frame_at: None,
@@ -62,6 +62,7 @@ enum Screen {
     #[default]
     Intro,
     Working,
+    HackingIntro,
     Complete,
     Finished,
 }
@@ -84,6 +85,7 @@ impl eframe::App for DreamstackApp {
             match self.screen {
                 Screen::Intro => self.show_intro(ui),
                 Screen::Working => self.show_working(ui),
+                Screen::HackingIntro => self.show_hacking_intro(ui),
                 Screen::Complete => self.show_complete(ui),
                 Screen::Finished => self.show_finished(ui),
             }
@@ -101,23 +103,30 @@ impl DreamstackApp {
         self.level
             .employers
             .first()
-            .expect("level 0 should have an employer")
+            .expect("level should have an employer")
     }
 
     fn job(&self) -> &game::Job {
         self.employer()
             .jobs
             .first()
-            .expect("level 0 should have a job")
+            .expect("level should have a job")
+    }
+
+    fn server(&self) -> &game::Server {
+        self.level
+            .servers
+            .first()
+            .expect("level should have a server")
     }
 
     fn show_intro(&mut self, ui: &mut egui::Ui) {
         let employer = self.employer();
         let job = self.job();
 
-        ui.label(format!("Level {}: Job System", self.level.number));
+        ui.label(format!("Level {}: Hacking System", self.level.number));
         ui.label(format!(
-            "This level lasts {} in-game hours.",
+            "First, complete one {}-hour work shift.",
             self.level.duration_seconds / 3_600
         ));
         ui.add_space(12.0);
@@ -131,6 +140,7 @@ impl DreamstackApp {
             job.company_reputation_per_second, job.charisma_experience_per_second
         ));
         ui.label("Once your 8-hour shift starts, you cannot do anything else until it is over.");
+        ui.label("After the shift, you will unlock your first hacking target.");
         ui.add_space(20.0);
 
         if ui
@@ -188,6 +198,32 @@ impl DreamstackApp {
         });
     }
 
+    fn show_hacking_intro(&mut self, ui: &mut egui::Ui) {
+        let server = self.server();
+
+        ui.label(format!(
+            "Level {}: Introduction to Hacking",
+            self.level.number
+        ));
+        ui.add_space(12.0);
+        ui.label("You finished your shift. Now you can target your first server.");
+        ui.label(format!(
+            "{} requires hack skill {}. Your hack skill starts at {}.",
+            server.name,
+            server.hack_skill_needed,
+            self.player.hack_skill()
+        ));
+        ui.label(format!("Security: {:.1}", server.min_security));
+        ui.label(format!("Maximum money: {:.3}", server.max_money()));
+        ui.add_space(12.0);
+        self.show_stats(ui);
+        ui.add_space(20.0);
+
+        if ui.button(format!("Hack {}", server.name)).clicked() {
+            self.hack_server();
+        }
+    }
+
     fn show_finished(&self, ui: &mut egui::Ui) {
         ui.label("Run complete.");
         ui.add_space(12.0);
@@ -218,6 +254,14 @@ impl DreamstackApp {
 
                 ui.label("Charisma exp");
                 ui.label(format!("{:.3}", self.player.charisma_experience()));
+                ui.end_row();
+
+                ui.label("Hack skill");
+                ui.label(self.player.hack_skill().to_string());
+                ui.end_row();
+
+                ui.label("Hack exp");
+                ui.label(format!("{:.3}", self.player.hack_experience()));
                 ui.end_row();
             });
     }
@@ -276,8 +320,19 @@ impl DreamstackApp {
     }
 
     fn finish_level(&mut self) {
-        self.screen = Screen::Complete;
+        self.screen = Screen::HackingIntro;
         self.write_autosave();
+    }
+
+    fn hack_server(&mut self) {
+        let server_name = self.server().name.clone();
+        let hack_experience = self.server().hack_experience_reward();
+
+        self.player.gain_hack_experience(hack_experience);
+        self.save_status =
+            format!("Hacked {server_name} and gained {hack_experience:.3} hack exp.");
+        self.write_autosave();
+        self.screen = Screen::Complete;
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
