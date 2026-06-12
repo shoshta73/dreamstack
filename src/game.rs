@@ -60,10 +60,6 @@ pub(crate) struct Clock {
 }
 
 impl Clock {
-    pub(crate) fn tick(&mut self) {
-        self.seconds += 1;
-    }
-
     pub(crate) fn advance_by(&mut self, seconds: u64) {
         self.seconds += seconds;
     }
@@ -167,7 +163,7 @@ mod tests {
     fn ticks_one_ingame_second() {
         let mut clock = Clock::default();
 
-        clock.tick();
+        clock.advance_by(1);
 
         assert_eq!(clock.elapsed_seconds(), 1);
         assert_eq!(clock.second(), 1);
