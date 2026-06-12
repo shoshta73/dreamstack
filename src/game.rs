@@ -2,6 +2,9 @@ use std::fmt;
 
 use serde::Deserialize;
 
+const FAVOR_UNIT: f64 = 0.01;
+const COMPANY_REPUTATION_RATE_BONUS_PER_FAVOR: f64 = 0.005;
+
 #[derive(Debug, PartialEq)]
 pub(crate) struct Level {
     pub(crate) number: u8,
@@ -64,6 +67,10 @@ impl Server {
 
 pub(crate) fn favor_for_reputation(reputation: f64) -> f64 {
     (1.0 + ((reputation + 25_000.0 / 25_500.0).log(1.02) + 1e-10).floor()) / 100.0
+}
+
+pub(crate) fn company_reputation_rate_multiplier(favor: f64) -> f64 {
+    1.0 + favor / FAVOR_UNIT * COMPANY_REPUTATION_RATE_BONUS_PER_FAVOR
 }
 
 pub(crate) fn level_0() -> Level {
@@ -199,6 +206,13 @@ mod tests {
     #[test_case(0.0403921568627451, 0.02; "two favor threshold")]
     fn calculates_favor_from_reputation(reputation: f64, favor: f64) {
         assert_eq!(super::favor_for_reputation(reputation), favor);
+    }
+
+    #[test_case(0.0, 1.0; "no favor")]
+    #[test_case(0.01, 1.005; "one favor")]
+    #[test_case(0.05, 1.025; "five favor")]
+    fn calculates_company_reputation_rate_multiplier(favor: f64, multiplier: f64) {
+        assert_eq!(super::company_reputation_rate_multiplier(favor), multiplier);
     }
 
     #[test_case(0, 0, 0, 0; "starts at midnight")]

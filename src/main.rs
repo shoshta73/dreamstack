@@ -7,7 +7,7 @@ mod log;
 mod player;
 mod save;
 
-use game::{Clock, Level, level_0, level_1};
+use game::{Clock, Level, company_reputation_rate_multiplier, level_0, level_1};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
@@ -380,7 +380,8 @@ impl DreamstackApp {
     fn apply_work_rewards(&mut self, seconds: u64) {
         let employer_name = self.employer().name.clone();
         let pay = self.job().pay_for_seconds(seconds);
-        let company_reputation = self.job().company_reputation_for_seconds(seconds);
+        let company_reputation = self.job().company_reputation_for_seconds(seconds)
+            * company_reputation_rate_multiplier(self.player.company_favor(&employer_name));
         let charisma_experience = self.job().charisma_experience_for_seconds(seconds);
 
         self.player.earn_money(pay);
