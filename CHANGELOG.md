@@ -8,11 +8,25 @@ All notable changes to Dreamstack will be documented in this file.
 
 - Initial native `eframe`/`egui` incremental game prototype.
 - Level 0 job flow with an employer, job offer, pay rate, and 8-hour in-game shift.
-- Live work progress with accelerated in-game time and visible money, company reputation, company favor, and charisma experience stats.
+- Level 1 hacking onboarding after the first work shift.
+- Embedded server data with hack skill requirements, security, max money, and hack experience rewards.
+- Player hack experience, hack skill, charisma skill, and starting money stats.
+- Collapsible left sidebar with a Hacking group and Terminal entry.
+- Right player stats sidebar.
+- Home server terminal flow with `netscan`, `connect <hostname>`, `scan`, `nuke`, `npm i -g backdoor`, `hack`, and `home` commands.
+- Terminal hacking flow that rewards hack experience after a successful `hack` command.
+- Live work progress with accelerated in-game time and visible player stats.
 - Job rewards for money, company reputation, and charisma experience over worked time.
 - Level skip action that applies the remaining shift rewards before completing the level.
 - End-of-level choice to convert company reputation into future favor or clear company standings.
 - Autosave support.
+
+### Changed
+
+- Company favor now increases future company reputation gain rate by 0.5% per favor.
+- Company favor applies only to subsequent levels, not the level where it is earned.
+- Money, skill experience, and company reputation reset when moving between levels.
+- New players start with `1024.0` money.
 
 ### Internal
 
