@@ -347,11 +347,12 @@ impl DreamstackApp {
 
     fn start_level_1(&mut self) {
         let employer_name = self.employer().name.clone();
+        self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
+        self.player.clear_company_standings();
 
         self.level = level_1();
         self.clock = Clock::default();
         self.screen = Screen::Intro;
-        self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
         self.last_frame_at = None;
         self.game_seconds_buffer = 0.0;
         self.real_seconds_since_autosave = 0.0;
