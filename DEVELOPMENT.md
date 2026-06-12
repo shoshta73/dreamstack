@@ -59,3 +59,7 @@ The dev-release workflow uses the first `##` section in `CHANGELOG.md` as the re
 `data/employers.json` is embedded into the binary at compile time. Rebuild the app after changing it.
 
 Autosaves write `autosave.json` through `autosave.json.tmp` in the repo root. Both files are ignored by git.
+
+## Commit Style
+
+Prefer small atomic commits that each capture one focused change.
