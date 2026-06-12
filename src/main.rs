@@ -452,6 +452,8 @@ impl DreamstackApp {
             self.nuke_connected_server();
         } else if command == "npm i -g backdoor" {
             self.install_backdoor();
+        } else if command == "hack" {
+            self.hack_connected_server();
         } else {
             self.terminal_lines
                 .push(format!("unknown command: {command}"));
@@ -573,6 +575,41 @@ impl DreamstackApp {
         self.backdoor_server = Some(hostname.to_string());
         self.terminal_lines
             .push(format!("backdoor installed on {hostname}"));
+        self.terminal_lines
+            .push("Run `hack` to drain the server.".to_string());
+    }
+
+    fn hack_connected_server(&mut self) {
+        let Some(hostname) = self.connected_server.as_deref() else {
+            self.terminal_lines
+                .push("connect to a server before hacking".to_string());
+            return;
+        };
+
+        if self.backdoor_server.as_deref() != Some(hostname) {
+            self.terminal_lines
+                .push("install a backdoor before hacking".to_string());
+            return;
+        }
+
+        let Some(server) = self
+            .level
+            .servers
+            .iter()
+            .find(|server| server.name == hostname)
+        else {
+            self.terminal_lines
+                .push(format!("hack failed: lost connection to {hostname}"));
+            return;
+        };
+
+        let hack_experience = server.hack_experience_reward();
+        self.player.gain_hack_experience(hack_experience);
+        self.terminal_lines.push(format!(
+            "hack complete: gained {hack_experience:.3} hack exp"
+        ));
+        self.save_status = format!("Hacked {hostname} and gained {hack_experience:.3} hack exp.");
+        self.write_autosave();
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
