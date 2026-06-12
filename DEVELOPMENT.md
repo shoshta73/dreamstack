@@ -49,3 +49,7 @@ scripts/next-dev-tag         # print the next dev-release tag
 scripts/next-dev-tag create  # create the next dev-release tag locally
 scripts/next-dev-tag push    # create and push the next dev-release tag
 ```
+
+## Release Notes
+
+The dev-release workflow uses the first `##` section in `CHANGELOG.md` as the release notes body.
