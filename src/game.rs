@@ -7,6 +7,7 @@ pub(crate) struct Level {
     pub(crate) number: u8,
     pub(crate) duration_seconds: u64,
     pub(crate) employers: Vec<Employer>,
+    pub(crate) servers: Vec<Server>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -23,6 +24,20 @@ pub(crate) struct Job {
     pub(crate) charisma_experience_per_second: f64,
 }
 
+#[derive(Debug, Deserialize, PartialEq)]
+pub(crate) struct Server {
+    pub(crate) name: String,
+    pub(crate) hack_skill_needed: u8,
+    pub(crate) min_security: f64,
+    pub(crate) max_money: ServerMoney,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub(crate) struct ServerMoney {
+    quantifier: f64,
+    multiplier: u64,
+}
+
 impl Job {
     pub(crate) fn pay_for_seconds(&self, seconds: u64) -> f64 {
         self.hourly_pay / 3_600.0 * seconds as f64
@@ -37,6 +52,16 @@ impl Job {
     }
 }
 
+impl Server {
+    pub(crate) fn max_money(&self) -> f64 {
+        self.max_money.quantifier * self.max_money.multiplier as f64
+    }
+
+    pub(crate) fn hack_experience_reward(&self) -> f64 {
+        self.min_security * 25.0
+    }
+}
+
 pub(crate) fn favor_for_reputation(reputation: f64) -> f64 {
     (1.0 + ((reputation + 25_000.0 / 25_500.0).log(1.02) + 1e-10).floor()) / 100.0
 }
@@ -46,12 +71,27 @@ pub(crate) fn level_0() -> Level {
         number: 0,
         duration_seconds: 8 * 60 * 60,
         employers: load_employers(),
+        servers: Vec::new(),
+    }
+}
+
+pub(crate) fn level_1() -> Level {
+    Level {
+        number: 1,
+        duration_seconds: 8 * 60 * 60,
+        employers: load_employers(),
+        servers: load_servers(),
     }
 }
 
 fn load_employers() -> Vec<Employer> {
     serde_json::from_str(include_str!("../data/employers.json"))
         .expect("data/employers.json should contain valid employers")
+}
+
+fn load_servers() -> Vec<Server> {
+    serde_json::from_str(include_str!("../data/servers.json"))
+        .expect("data/servers.json should contain valid servers")
 }
 
 #[derive(Debug, Default)]
@@ -95,7 +135,7 @@ impl fmt::Display for Clock {
 
 #[cfg(test)]
 mod tests {
-    use super::{Clock, level_0};
+    use super::{Clock, level_0, level_1};
     use test_case::test_case;
 
     #[test]
@@ -105,6 +145,7 @@ mod tests {
         assert_eq!(level.number, 0);
         assert_eq!(level.duration_seconds, 28_800);
         assert_eq!(level.employers.len(), 1);
+        assert_eq!(level.servers.len(), 0);
 
         let employer = &level.employers[0];
         assert_eq!(employer.name, "employer0");
@@ -115,6 +156,23 @@ mod tests {
         assert_eq!(job.hourly_pay, 110.000);
         assert_eq!(job.company_reputation_per_second, 0.001);
         assert_eq!(job.charisma_experience_per_second, 0.200);
+    }
+
+    #[test]
+    fn level_1_introduces_hacking_server() {
+        let level = level_1();
+
+        assert_eq!(level.number, 1);
+        assert_eq!(level.duration_seconds, 28_800);
+        assert_eq!(level.employers.len(), 1);
+        assert_eq!(level.servers.len(), 1);
+
+        let server = &level.servers[0];
+        assert_eq!(server.name, "server0");
+        assert_eq!(server.hack_skill_needed, 1);
+        assert_eq!(server.min_security, 1.0);
+        assert_eq!(server.max_money(), 100_000.0);
+        assert_eq!(server.hack_experience_reward(), 25.0);
     }
 
     #[test]

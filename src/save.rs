@@ -97,6 +97,8 @@ mod tests {
             SavedPlayer {
                 money: 880.0,
                 charisma_experience: 5_760.0,
+                hack_experience: 25.0,
+                hack_skill: 1,
                 exchange_marker: -1.0,
                 company_standings: vec![SavedCompanyStanding {
                     company_name: "employer0".to_string(),
@@ -117,6 +119,8 @@ mod tests {
             "player": {
               "money": 880.0,
               "charisma_experience": 5760.0,
+              "hack_experience": 25.0,
+              "hack_skill": 1,
               "botanical_gardens": -1.0,
               "company_standings": [
                 {

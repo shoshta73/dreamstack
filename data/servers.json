@@ -1,0 +1,11 @@
+[
+  {
+    "name": "server0",
+    "hack_skill_needed": 1,
+    "min_security": 1.0,
+    "max_money": {
+      "quantifier": 1.0,
+      "multiplier": 100000
+    }
+  }
+]

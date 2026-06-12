@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub(crate) struct SavedPlayer {
     pub(crate) money: f64,
     pub(crate) charisma_experience: f64,
+    pub(crate) hack_experience: f64,
+    pub(crate) hack_skill: u8,
     #[serde(rename = "botanical_gardens")]
     pub(crate) exchange_marker: f64,
     pub(crate) company_standings: Vec<SavedCompanyStanding>,
@@ -17,12 +19,26 @@ pub(crate) struct SavedCompanyStanding {
     pub(crate) reputation: f64,
 }
 
-#[derive(Default)]
 struct Stats {
     money: f64,
     charisma_experience: f64,
+    hack_experience: f64,
+    hack_skill: u8,
     exchange_marker: f64,
     company_standings: Vec<CompanyStanding>,
+}
+
+impl Default for Stats {
+    fn default() -> Self {
+        Self {
+            money: 0.0,
+            charisma_experience: 0.0,
+            hack_experience: 0.0,
+            hack_skill: 1,
+            exchange_marker: 0.0,
+            company_standings: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -51,6 +67,18 @@ impl Player {
 
     pub(crate) fn charisma_experience(&self) -> f64 {
         self.stats.charisma_experience
+    }
+
+    pub(crate) fn gain_hack_experience(&mut self, experience: f64) {
+        self.stats.hack_experience += experience;
+    }
+
+    pub(crate) fn hack_experience(&self) -> f64 {
+        self.stats.hack_experience
+    }
+
+    pub(crate) fn hack_skill(&self) -> u8 {
+        self.stats.hack_skill
     }
 
     pub(crate) fn shift_exchange_marker(&mut self, exchange_marker: f64) {
@@ -94,6 +122,8 @@ impl Player {
         SavedPlayer {
             money: round_save_value(self.stats.money),
             charisma_experience: round_save_value(self.stats.charisma_experience),
+            hack_experience: round_save_value(self.stats.hack_experience),
+            hack_skill: self.stats.hack_skill,
             exchange_marker: round_save_value(self.stats.exchange_marker),
             company_standings: self
                 .stats
@@ -134,6 +164,24 @@ mod tests {
         player.earn_money(0.5);
 
         assert_eq!(player.money(), 10.5);
+    }
+
+    #[test]
+    fn starts_with_level_1_hack_skill() {
+        let player = Player::default();
+
+        assert_eq!(player.hack_skill(), 1);
+        assert_eq!(player.hack_experience(), 0.0);
+    }
+
+    #[test]
+    fn gains_hack_experience() {
+        let mut player = Player::default();
+
+        player.gain_hack_experience(10.0);
+        player.gain_hack_experience(15.0);
+
+        assert_eq!(player.hack_experience(), 25.0);
     }
 
     #[test]
@@ -183,6 +231,8 @@ mod tests {
 
         assert_eq!(saved.money, 10.5);
         assert_eq!(saved.charisma_experience, 0.400);
+        assert_eq!(saved.hack_experience, 0.0);
+        assert_eq!(saved.hack_skill, 1);
         assert_eq!(saved.exchange_marker, -1.0);
         assert_eq!(saved.company_standings.len(), 1);
         assert_eq!(saved.company_standings[0].company_name, "employer0");
@@ -195,10 +245,12 @@ mod tests {
 
         player.earn_money(879.9999999999998);
         player.gain_charisma_experience(5_760.000000000002);
+        player.gain_hack_experience(24.999999999999996);
 
         let saved = player.to_save();
 
         assert_eq!(saved.money, 880.0);
         assert_eq!(saved.charisma_experience, 5_760.0);
+        assert_eq!(saved.hack_experience, 25.0);
     }
 }
