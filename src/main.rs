@@ -94,7 +94,7 @@ impl eframe::App for DreamstackApp {
                 if self.sidebar_open {
                     ui.add_space(12.0);
                     egui::CollapsingHeader::new("Hacking").show(ui, |ui| {
-                        ui.label("Terminal");
+                        ui.add_enabled(self.level.number != 0, egui::Button::new("Terminal"));
                     });
                 }
             });
