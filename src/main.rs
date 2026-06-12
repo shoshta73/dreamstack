@@ -1,15 +1,12 @@
-use std::{
-    io::{self, Write},
-    sync::mpsc::{self, TryRecvError},
-};
+use std::{io, time::Instant};
 
-use tokio::time::{self, Duration};
+use eframe::egui;
 
 mod game;
 mod player;
 mod save;
 
-use game::{Clock, level_0};
+use game::{Clock, Level, level_0};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
@@ -17,14 +14,26 @@ use tracing_subscriber::{
     EnvFilter, Layer, fmt::layer, layer::SubscriberExt, registry, util::SubscriberInitExt,
 };
 
-#[tokio::main]
-async fn main() {
-    if let Err(error) = run().await {
-        eprintln!("Game failed: {error}");
-    }
+const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
+const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
+
+fn main() -> eframe::Result {
+    init_tracing();
+    info!("Game Started");
+
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([880.0, 620.0]),
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "Dreamstack",
+        options,
+        Box::new(|_creation_context| Ok(Box::new(DreamstackApp::default()))),
+    )
 }
 
-async fn run() -> io::Result<()> {
+fn init_tracing() {
     let terminal = layer()
         .with_ansi(true)
         .with_filter(if cfg!(debug_assertions) {
@@ -34,186 +43,288 @@ async fn run() -> io::Result<()> {
         });
 
     registry().with(terminal).init();
+}
 
-    info!("Game Started");
-    let mut player = Player::default();
-    let level = level_0();
-    let employer = level
-        .employers
-        .first()
-        .expect("level 0 should have an employer");
-    let job = employer.jobs.first().expect("level 0 should have a job");
+struct DreamstackApp {
+    player: Player,
+    level: Level,
+    clock: Clock,
+    screen: Screen,
+    last_frame_at: Option<Instant>,
+    game_seconds_buffer: f64,
+    real_seconds_since_autosave: f64,
+    save_status: String,
+}
 
-    info!(
-        level = level.number,
-        duration_seconds = level.duration_seconds,
-        employers = level.employers.len(),
-        "Level loaded"
-    );
+impl Default for DreamstackApp {
+    fn default() -> Self {
+        Self {
+            player: Player::default(),
+            level: level_0(),
+            clock: Clock::default(),
+            screen: Screen::default(),
+            last_frame_at: None,
+            game_seconds_buffer: 0.0,
+            real_seconds_since_autosave: 0.0,
+            save_status: String::new(),
+        }
+    }
+}
 
-    info!(
-        employer = employer.name,
-        job = job.name,
-        hourly_pay = job.hourly_pay,
-        reputation_per_second = job.company_reputation_per_second,
-        charisma_experience_per_second = job.charisma_experience_per_second,
-        "Job available"
-    );
+#[derive(Default, PartialEq)]
+enum Screen {
+    #[default]
+    Intro,
+    Working,
+    Complete,
+    Finished,
+}
 
-    println!("Level {}: Job System", level.number);
-    println!(
-        "This level lasts {} in-game hours.",
-        level.duration_seconds / 3_600
-    );
-    println!("{} is hiring for one role: {}.", employer.name, job.name);
-    println!("Pay: {:.3}/hr", job.hourly_pay);
-    println!(
-        "While working, you gain {:.3} company reputation and {:.3} charisma exp per in-game second.",
-        job.company_reputation_per_second, job.charisma_experience_per_second
-    );
-    println!("Once your 8-hour shift starts, you cannot do anything else until it is over.");
+impl eframe::App for DreamstackApp {
+    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        if self.screen == Screen::Working {
+            self.advance_working_time();
+            context.request_repaint();
+        } else {
+            self.last_frame_at = Some(Instant::now());
+        }
 
-    print!("Take the {} job at {}? [y/N]: ", job.name, employer.name);
-    io::stdout().flush()?;
+        egui::CentralPanel::default().show(context, |ui| {
+            ui.heading("Dreamstack");
+            ui.add_space(8.0);
 
-    let mut answer = String::new();
-    io::stdin().read_line(&mut answer)?;
+            match self.screen {
+                Screen::Intro => self.show_intro(ui),
+                Screen::Working => self.show_working(ui),
+                Screen::Complete => self.show_complete(ui),
+                Screen::Finished => self.show_finished(ui),
+            }
 
-    if !answer.trim().eq_ignore_ascii_case("y") {
-        println!("No job taken. Level {} cannot start yet.", level.number);
-        info!("Game Ended");
-        return Ok(());
+            if !self.save_status.is_empty() {
+                ui.add_space(16.0);
+                ui.label(&self.save_status);
+            }
+        });
+    }
+}
+
+impl DreamstackApp {
+    fn employer(&self) -> &game::Employer {
+        self.level
+            .employers
+            .first()
+            .expect("level 0 should have an employer")
     }
 
-    println!(
-        "You took the {} job. Starting level {}.",
-        job.name, level.number
-    );
+    fn job(&self) -> &game::Job {
+        self.employer()
+            .jobs
+            .first()
+            .expect("level 0 should have a job")
+    }
 
-    let mut clock = Clock::default();
-    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
+    fn show_intro(&mut self, ui: &mut egui::Ui) {
+        let employer = self.employer();
+        let job = self.job();
 
-    let mut interval = time::interval(Duration::from_secs_f64(1.0 / 60.0));
-    let mut next_autosave_at = time::Instant::now() + Duration::from_secs(5 * 60);
-    let skip_prompt_at = time::Instant::now() + Duration::from_secs(10);
-    let mut skip_prompt_shown = false;
-    let mut skip_answer = None;
+        ui.label(format!("Level {}: Job System", self.level.number));
+        ui.label(format!(
+            "This level lasts {} in-game hours.",
+            self.level.duration_seconds / 3_600
+        ));
+        ui.add_space(12.0);
+        ui.label(format!(
+            "{} is hiring for one role: {}.",
+            employer.name, job.name
+        ));
+        ui.label(format!("Pay: {:.3}/hr", job.hourly_pay));
+        ui.label(format!(
+            "While working, you gain {:.3} company reputation and {:.3} charisma exp per in-game second.",
+            job.company_reputation_per_second, job.charisma_experience_per_second
+        ));
+        ui.label("Once your 8-hour shift starts, you cannot do anything else until it is over.");
+        ui.add_space(20.0);
 
-    while clock.elapsed_seconds() < level.duration_seconds {
-        interval.tick().await;
-        clock.tick();
-        player.earn_money(job.pay_for_seconds(1));
-        player.gain_company_reputation(&employer.name, job.company_reputation_for_seconds(1));
-        player.gain_charisma_experience(job.charisma_experience_for_seconds(1));
-
-        if clock.second() == 0 {
-            println!(
-                "game time {clock} | money {:.3} | company rep {:.3} | favor {:.3} | charisma exp {:.3}",
-                player.money(),
-                player.company_reputation(&employer.name),
-                player.company_favor(&employer.name),
-                player.charisma_experience()
-            );
+        if ui
+            .button(format!("Take the {} job at {}", job.name, employer.name))
+            .clicked()
+        {
+            self.start_job();
         }
+    }
 
-        if time::Instant::now() >= next_autosave_at {
-            write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
-            next_autosave_at += Duration::from_secs(5 * 60);
+    fn show_working(&mut self, ui: &mut egui::Ui) {
+        let progress = self.clock.elapsed_seconds() as f32 / self.level.duration_seconds as f32;
+
+        ui.label(format!(
+            "Working as {} at {}",
+            self.job().name,
+            self.employer().name
+        ));
+        ui.add(egui::ProgressBar::new(progress).text(format!(
+            "game time {} / {}:00:00",
+            self.clock,
+            self.level.duration_seconds / 3_600
+        )));
+        ui.add_space(16.0);
+        self.show_stats(ui);
+        ui.add_space(20.0);
+
+        if ui.button("Skip the rest of this level").clicked() {
+            self.skip_level();
         }
+    }
 
-        if !skip_prompt_shown && time::Instant::now() >= skip_prompt_at {
-            skip_prompt_shown = true;
-            let (sender, receiver) = mpsc::channel();
-            skip_answer = Some(receiver);
+    fn show_complete(&mut self, ui: &mut egui::Ui) {
+        ui.label(format!("Level {} complete.", self.level.number));
+        ui.add_space(12.0);
+        self.show_stats(ui);
+        ui.add_space(20.0);
+        ui.label("Convert all company reputation into favor for the next part of the game?");
 
-            tokio::task::spawn_blocking(move || {
-                let result = prompt_to_skip_level();
-                let _ = sender.send(result);
+        ui.horizontal(|ui| {
+            if ui.button("Convert to favor").clicked() {
+                self.player.shift_exchange_marker(-1.0);
+                self.save_status = "Company reputation will carry forward as favor.".to_string();
+                self.write_autosave();
+                self.screen = Screen::Finished;
+            }
+
+            if ui.button("Do not convert").clicked() {
+                self.player.shift_exchange_marker(1.0);
+                self.player.clear_company_standings();
+                self.save_status = "Company reputation will not carry forward.".to_string();
+                self.write_autosave();
+                self.screen = Screen::Finished;
+            }
+        });
+    }
+
+    fn show_finished(&self, ui: &mut egui::Ui) {
+        ui.label("Run complete.");
+        ui.add_space(12.0);
+        self.show_stats(ui);
+    }
+
+    fn show_stats(&self, ui: &mut egui::Ui) {
+        let employer_name = &self.employer().name;
+
+        egui::Grid::new("player_stats")
+            .num_columns(2)
+            .spacing([24.0, 8.0])
+            .show(ui, |ui| {
+                ui.label("Money");
+                ui.label(format!("{:.3}", self.player.money()));
+                ui.end_row();
+
+                ui.label(format!("{} reputation", employer_name));
+                ui.label(format!(
+                    "{:.3}",
+                    self.player.company_reputation(employer_name)
+                ));
+                ui.end_row();
+
+                ui.label(format!("{} favor", employer_name));
+                ui.label(format!("{:.3}", self.player.company_favor(employer_name)));
+                ui.end_row();
+
+                ui.label("Charisma exp");
+                ui.label(format!("{:.3}", self.player.charisma_experience()));
+                ui.end_row();
             });
+    }
+
+    fn start_job(&mut self) {
+        self.screen = Screen::Working;
+        self.last_frame_at = Some(Instant::now());
+        self.real_seconds_since_autosave = 0.0;
+        self.save_status = format!(
+            "You took the {} job. Starting level {}.",
+            self.job().name,
+            self.level.number
+        );
+        self.write_autosave();
+    }
+
+    fn advance_working_time(&mut self) {
+        let now = Instant::now();
+        let elapsed_real_seconds = self
+            .last_frame_at
+            .replace(now)
+            .map_or(0.0, |last_frame_at| {
+                now.duration_since(last_frame_at).as_secs_f64()
+            });
+
+        self.real_seconds_since_autosave += elapsed_real_seconds;
+        self.game_seconds_buffer += elapsed_real_seconds * GAME_SECONDS_PER_REAL_SECOND;
+
+        let mut game_seconds = self.game_seconds_buffer.floor() as u64;
+        if game_seconds == 0 {
+            return;
         }
 
-        if let Some(receiver) = &skip_answer {
-            match receiver.try_recv() {
-                Ok(true) => {
-                    let remaining_seconds = level.duration_seconds - clock.elapsed_seconds();
-                    player.earn_money(job.pay_for_seconds(remaining_seconds));
-                    player.gain_company_reputation(
-                        &employer.name,
-                        job.company_reputation_for_seconds(remaining_seconds),
-                    );
-                    player.gain_charisma_experience(
-                        job.charisma_experience_for_seconds(remaining_seconds),
-                    );
-                    clock.advance_by(remaining_seconds);
-                    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
-                    println!("Skipping the rest of level {}.", level.number);
-                    break;
+        self.game_seconds_buffer -= game_seconds as f64;
+        let remaining_seconds = self.level.duration_seconds - self.clock.elapsed_seconds();
+        game_seconds = game_seconds.min(remaining_seconds);
+        self.apply_work_rewards(game_seconds);
+        self.clock.advance_by(game_seconds);
+
+        if self.real_seconds_since_autosave >= AUTOSAVE_INTERVAL_SECONDS {
+            self.real_seconds_since_autosave = 0.0;
+            self.write_autosave();
+        }
+
+        if self.clock.elapsed_seconds() >= self.level.duration_seconds {
+            self.finish_level();
+        }
+    }
+
+    fn skip_level(&mut self) {
+        let remaining_seconds = self.level.duration_seconds - self.clock.elapsed_seconds();
+        self.apply_work_rewards(remaining_seconds);
+        self.clock.advance_by(remaining_seconds);
+        self.save_status = format!("Skipped the rest of level {}.", self.level.number);
+        self.finish_level();
+    }
+
+    fn finish_level(&mut self) {
+        self.screen = Screen::Complete;
+        self.write_autosave();
+    }
+
+    fn apply_work_rewards(&mut self, seconds: u64) {
+        let employer_name = self.employer().name.clone();
+        let pay = self.job().pay_for_seconds(seconds);
+        let company_reputation = self.job().company_reputation_for_seconds(seconds);
+        let charisma_experience = self.job().charisma_experience_for_seconds(seconds);
+
+        self.player.earn_money(pay);
+        self.player
+            .gain_company_reputation(&employer_name, company_reputation);
+        self.player.gain_charisma_experience(charisma_experience);
+    }
+
+    fn write_autosave(&mut self) {
+        let employer_name = self.employer().name.clone();
+        let job_name = self.job().name.clone();
+
+        match write_level_autosave(
+            &self.player,
+            self.level.number,
+            &self.clock,
+            &employer_name,
+            &job_name,
+        ) {
+            Ok(()) => {
+                if self.save_status.is_empty() {
+                    self.save_status = "Autosaved.".to_string();
                 }
-                Ok(false) => {
-                    println!("Continuing level {}.", level.number);
-                    skip_answer = None;
-                }
-                Err(TryRecvError::Empty) => {}
-                Err(TryRecvError::Disconnected) => {
-                    skip_answer = None;
-                }
+            }
+            Err(error) => {
+                self.save_status = format!("Autosave failed: {error}");
             }
         }
     }
-
-    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
-
-    println!("Level {} complete.", level.number);
-    println!("Money: {:.3}", player.money());
-    println!(
-        "{} reputation: {:.3}",
-        employer.name,
-        player.company_reputation(&employer.name)
-    );
-    println!(
-        "{} favor: {:.3}",
-        employer.name,
-        player.company_favor(&employer.name)
-    );
-    println!("Charisma exp: {:.3}", player.charisma_experience());
-
-    if prompt_to_convert_company_reputation()? {
-        player.shift_exchange_marker(-1.0);
-        println!("Company reputation will carry forward as favor.");
-    } else {
-        player.shift_exchange_marker(1.0);
-        player.clear_company_standings();
-        println!("Company reputation will not carry forward.");
-    }
-
-    write_level_autosave(&player, level.number, &clock, &employer.name, &job.name)?;
-    info!("Game Ended");
-
-    Ok(())
-}
-
-fn prompt_to_skip_level() -> bool {
-    print!("\nSkip the rest of this level? [y/N]: ");
-    let _ = io::stdout().flush();
-
-    let mut answer = String::new();
-    match io::stdin().read_line(&mut answer) {
-        Ok(_) => answer.trim().eq_ignore_ascii_case("y"),
-        Err(error) => {
-            eprintln!("Could not read skip answer: {error}");
-            false
-        }
-    }
-}
-
-fn prompt_to_convert_company_reputation() -> io::Result<bool> {
-    print!("Convert all company reputation into favor for the next part of the game? [y/N]: ");
-    io::stdout().flush()?;
-
-    let mut answer = String::new();
-    io::stdin().read_line(&mut answer)?;
-
-    Ok(answer.trim().eq_ignore_ascii_case("y"))
 }
 
 fn write_level_autosave(
