@@ -36,6 +36,7 @@ struct DreamstackApp {
     level: Level,
     clock: Clock,
     screen: Screen,
+    company_reputation_rate_favor: f64,
     last_frame_at: Option<Instant>,
     game_seconds_buffer: f64,
     real_seconds_since_autosave: f64,
@@ -49,6 +50,7 @@ impl Default for DreamstackApp {
             level: level_0(),
             clock: Clock::default(),
             screen: Screen::default(),
+            company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
             real_seconds_since_autosave: 0.0,
@@ -344,9 +346,12 @@ impl DreamstackApp {
     }
 
     fn start_level_1(&mut self) {
+        let employer_name = self.employer().name.clone();
+
         self.level = level_1();
         self.clock = Clock::default();
         self.screen = Screen::Intro;
+        self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
         self.last_frame_at = None;
         self.game_seconds_buffer = 0.0;
         self.real_seconds_since_autosave = 0.0;
@@ -381,7 +386,7 @@ impl DreamstackApp {
         let employer_name = self.employer().name.clone();
         let pay = self.job().pay_for_seconds(seconds);
         let company_reputation = self.job().company_reputation_for_seconds(seconds)
-            * company_reputation_rate_multiplier(self.player.company_favor(&employer_name));
+            * company_reputation_rate_multiplier(self.company_reputation_rate_favor);
         let charisma_experience = self.job().charisma_experience_for_seconds(seconds);
 
         self.player.earn_money(pay);
