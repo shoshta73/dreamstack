@@ -40,6 +40,7 @@ struct DreamstackApp {
     terminal_input: String,
     terminal_lines: Vec<String>,
     terminal_scanned: bool,
+    connected_server: Option<String>,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<Instant>,
     game_seconds_buffer: f64,
@@ -58,6 +59,7 @@ impl Default for DreamstackApp {
             terminal_input: String::new(),
             terminal_lines: Vec::new(),
             terminal_scanned: false,
+            connected_server: None,
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -416,6 +418,7 @@ impl DreamstackApp {
                 "Run `netscan` to discover nearby servers.".to_string(),
             ];
             self.terminal_scanned = false;
+            self.connected_server = None;
             self.save_status = "Terminal opened.".to_string();
             self.screen = Screen::Terminal;
         } else {
@@ -433,11 +436,13 @@ impl DreamstackApp {
             .push(format!("home@dreamstack:~$ {command}"));
         self.terminal_input.clear();
 
-        match command.as_str() {
-            "netscan" => self.run_netscan(),
-            _ => self
-                .terminal_lines
-                .push(format!("unknown command: {command}")),
+        if command == "netscan" {
+            self.run_netscan();
+        } else if let Some(hostname) = command.strip_prefix("connect ") {
+            self.connect_server(hostname);
+        } else {
+            self.terminal_lines
+                .push(format!("unknown command: {command}"));
         }
     }
 
@@ -464,7 +469,32 @@ impl DreamstackApp {
 
         self.terminal_lines.push("servers found:".to_string());
         self.terminal_lines.extend(server_lines);
+        self.terminal_lines
+            .push("Run `connect <hostname>` to connect to a server.".to_string());
         self.terminal_scanned = true;
+    }
+
+    fn connect_server(&mut self, hostname: &str) {
+        if !self.terminal_scanned {
+            self.terminal_lines
+                .push("run `netscan` before connecting".to_string());
+            return;
+        }
+
+        let Some(server) = self
+            .level
+            .servers
+            .iter()
+            .find(|server| server.name == hostname)
+        else {
+            self.terminal_lines
+                .push(format!("connect failed: unknown host {hostname}"));
+            return;
+        };
+
+        self.connected_server = Some(server.name.clone());
+        self.terminal_lines
+            .push(format!("connected to {}", server.name));
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
