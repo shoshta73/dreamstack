@@ -7,7 +7,7 @@ mod log;
 mod player;
 mod save;
 
-use game::{Clock, Level, level_1};
+use game::{Clock, Level, level_0, level_1};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
@@ -46,7 +46,7 @@ impl Default for DreamstackApp {
     fn default() -> Self {
         Self {
             player: Player::default(),
-            level: level_1(),
+            level: level_0(),
             clock: Clock::default(),
             screen: Screen::default(),
             last_frame_at: None,
@@ -124,9 +124,13 @@ impl DreamstackApp {
         let employer = self.employer();
         let job = self.job();
 
-        ui.label(format!("Level {}: Hacking System", self.level.number));
         ui.label(format!(
-            "First, complete one {}-hour work shift.",
+            "Level {}: {}",
+            self.level.number,
+            self.level_title()
+        ));
+        ui.label(format!(
+            "Complete one {}-hour work shift.",
             self.level.duration_seconds / 3_600
         ));
         ui.add_space(12.0);
@@ -140,7 +144,9 @@ impl DreamstackApp {
             job.company_reputation_per_second, job.charisma_experience_per_second
         ));
         ui.label("Once your 8-hour shift starts, you cannot do anything else until it is over.");
-        ui.label("After the shift, you will unlock your first hacking target.");
+        if self.has_hacking_intro() {
+            ui.label("After the shift, you will unlock your first hacking target.");
+        }
         ui.add_space(20.0);
 
         if ui
@@ -183,17 +189,15 @@ impl DreamstackApp {
         ui.horizontal(|ui| {
             if ui.button("Convert to favor").clicked() {
                 self.player.shift_exchange_marker(-1.0);
-                self.save_status = "Company reputation will carry forward as favor.".to_string();
-                self.write_autosave();
-                self.screen = Screen::Finished;
+                self.advance_after_reputation_choice(
+                    "Company reputation will carry forward as favor.",
+                );
             }
 
             if ui.button("Do not convert").clicked() {
                 self.player.shift_exchange_marker(1.0);
                 self.player.clear_company_standings();
-                self.save_status = "Company reputation will not carry forward.".to_string();
-                self.write_autosave();
-                self.screen = Screen::Finished;
+                self.advance_after_reputation_choice("Company reputation will not carry forward.");
             }
         });
     }
@@ -320,8 +324,46 @@ impl DreamstackApp {
     }
 
     fn finish_level(&mut self) {
-        self.screen = Screen::HackingIntro;
+        self.screen = if self.has_hacking_intro() {
+            Screen::HackingIntro
+        } else {
+            Screen::Complete
+        };
         self.write_autosave();
+    }
+
+    fn advance_after_reputation_choice(&mut self, save_status: &str) {
+        self.save_status = save_status.to_string();
+
+        if self.level.number == 0 {
+            self.start_level_1();
+        } else {
+            self.write_autosave();
+            self.screen = Screen::Finished;
+        }
+    }
+
+    fn start_level_1(&mut self) {
+        self.level = level_1();
+        self.clock = Clock::default();
+        self.screen = Screen::Intro;
+        self.last_frame_at = None;
+        self.game_seconds_buffer = 0.0;
+        self.real_seconds_since_autosave = 0.0;
+        self.save_status.push_str(" Starting level 1.");
+        self.write_autosave();
+    }
+
+    fn level_title(&self) -> &'static str {
+        if self.has_hacking_intro() {
+            "Hacking System"
+        } else {
+            "Job System"
+        }
+    }
+
+    fn has_hacking_intro(&self) -> bool {
+        !self.level.servers.is_empty()
     }
 
     fn hack_server(&mut self) {
