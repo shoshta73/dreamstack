@@ -2,6 +2,19 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
+## Unreleased
+
+### UI
+
+- Restyled the terminal as a console pane with improved visual hierarchy, prompt styling, and command history presentation.
+
+### Internal
+
+- Added GitHub issue and pull request templates.
+- Updated the README to describe the current Level 0 job loop, Level 1 hacking onboarding, terminal commands, and sidebars.
+- Documented development release workflow and issue task labels.
+- Scoped Rust CI and build workflows to source, data, workflow, and project configuration changes.
+
 ## 26w24a [2026-06-12]
 
 ### Gameplay

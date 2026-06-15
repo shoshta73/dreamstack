@@ -10,7 +10,9 @@ Dreamstack is a native-performance, scriptable incremental hacking game about wa
 
 ## Current State
 
-Dreamstack currently has a playable Level 0 prototype: take an 8-hour job, watch in-game time progress, earn money, company reputation, and charisma experience, then choose whether company reputation carries forward as favor. The game writes local autosaves during the run.
+Dreamstack currently has a playable Level 0 job loop and Level 1 hacking onboarding. Start with an 8-hour job, watch in-game time progress, earn money, company reputation, and charisma experience, then choose whether company reputation carries forward as favor. After the first work shift, Level 1 introduces hacking through an in-game terminal backed by embedded server data, hack skill requirements, security, money, and experience rewards.
+
+The UI includes a collapsible left sidebar with hacking navigation, a terminal console pane, and a right player stats sidebar. The terminal supports `netscan`, `connect <hostname>`, `scan`, `nuke`, `npm i -g backdoor`, `hack`, and `home`. The game writes local autosaves during the run.
 
 For release notes, see [CHANGELOG.md](CHANGELOG.md).
 
