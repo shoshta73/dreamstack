@@ -24,13 +24,28 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.96.0
-          targets: wasm32-unknown-unknown
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
 
       - name: Build debug
         run: cargo build --workspace
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
 
       - name: Build web
         run: cargo build -p dreamstack --target wasm32-unknown-unknown
