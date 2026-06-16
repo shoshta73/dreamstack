@@ -37,6 +37,30 @@ cargo run
 
 Autosaves are written to `autosave.json` in the current working directory. There are no known Windows-specific runtime limitations.
 
+## Web
+
+Dreamstack can be built for the browser with the `wasm32-unknown-unknown` target.
+
+Requirements:
+
+- Rust `1.96.0`, as pinned by `rust-toolchain.toml`.
+- The `wasm32-unknown-unknown` Rust target.
+- `wasm-bindgen-cli` for generating browser-loadable JavaScript bindings.
+
+Build and run:
+
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install wasm-bindgen-cli
+cargo build --target wasm32-unknown-unknown
+wasm-bindgen --target web --out-dir web/pkg target/wasm32-unknown-unknown/debug/dreamstack.wasm
+python3 -m http.server --directory web 8000
+```
+
+Then open `http://localhost:8000`.
+
+Browser autosaves are stored in `localStorage` under the `autosave.json` key. Native autosaves remain file-based.
+
 ## License
 
 Dreamstack is licensed under the [BSD-3-Clause](https://opensource.org/license/bsd-3-clause/) license.

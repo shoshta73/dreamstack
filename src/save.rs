@@ -1,4 +1,7 @@
-use std::{fs, io, path::Path};
+use std::io;
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,6 +9,7 @@ use crate::player::SavedPlayer;
 
 const SAVE_VERSION: u64 = 1;
 const AUTOSAVE_PATH: &str = "autosave.json";
+#[cfg(not(target_arch = "wasm32"))]
 const AUTOSAVE_TMP_PATH: &str = "autosave.json.tmp";
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -71,9 +75,32 @@ impl SaveFile {
 }
 
 pub(crate) fn write_autosave(save_file: &SaveFile) -> io::Result<()> {
-    write_save_file(save_file, AUTOSAVE_PATH, AUTOSAVE_TMP_PATH)
+    #[cfg(target_arch = "wasm32")]
+    {
+        write_browser_autosave(save_file)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        write_save_file(save_file, AUTOSAVE_PATH, AUTOSAVE_TMP_PATH)
+    }
 }
 
+#[cfg(target_arch = "wasm32")]
+fn write_browser_autosave(save_file: &SaveFile) -> io::Result<()> {
+    let json = serde_json::to_string_pretty(save_file).map_err(io::Error::other)?;
+    let window = web_sys::window().ok_or_else(|| io::Error::other("window is unavailable"))?;
+    let storage = window
+        .local_storage()
+        .map_err(|error| io::Error::other(format!("localStorage error: {error:?}")))?
+        .ok_or_else(|| io::Error::other("localStorage is unavailable"))?;
+
+    storage
+        .set_item(AUTOSAVE_PATH, &json)
+        .map_err(|error| io::Error::other(format!("localStorage error: {error:?}")))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn write_save_file(
     save_file: &SaveFile,
     path: impl AsRef<Path>,

@@ -1,8 +1,11 @@
 use std::{io, time::Instant};
 
 use eframe::egui;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::{JsCast, prelude::*};
 
 mod game;
+#[cfg(not(target_arch = "wasm32"))]
 mod log;
 mod player;
 mod save;
@@ -10,11 +13,13 @@ mod save;
 use game::{Clock, Level, company_reputation_rate_multiplier, level_0, level_1};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
+#[cfg(not(target_arch = "wasm32"))]
 use tracing::info;
 
 const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
 const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     log::init_tracing();
     info!("Game Started");
@@ -30,6 +35,27 @@ fn main() -> eframe::Result {
         Box::new(|_creation_context| Ok(Box::new(DreamstackApp::default()))),
     )
 }
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(start)]
+pub async fn start() -> Result<(), wasm_bindgen::JsValue> {
+    let canvas = web_sys::window()
+        .and_then(|window| window.document())
+        .and_then(|document| document.get_element_by_id("dreamstack_canvas"))
+        .ok_or_else(|| wasm_bindgen::JsValue::from_str("missing dreamstack_canvas element"))?
+        .dyn_into::<web_sys::HtmlCanvasElement>()?;
+
+    eframe::WebRunner::new()
+        .start(
+            canvas,
+            eframe::WebOptions::default(),
+            Box::new(|_creation_context| Ok(Box::new(DreamstackApp::default()))),
+        )
+        .await
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {}
 
 struct DreamstackApp {
     player: Player,
