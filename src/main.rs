@@ -37,6 +37,7 @@ struct DreamstackApp {
     clock: Clock,
     screen: Screen,
     sidebar_open: bool,
+    player_sidebar_open: bool,
     terminal_input: String,
     terminal_lines: Vec<String>,
     terminal_scanned: bool,
@@ -58,6 +59,7 @@ impl Default for DreamstackApp {
             clock: Clock::default(),
             screen: Screen::default(),
             sidebar_open: true,
+            player_sidebar_open: true,
             terminal_input: String::new(),
             terminal_lines: Vec::new(),
             terminal_scanned: false,
@@ -119,11 +121,23 @@ impl eframe::App for DreamstackApp {
 
         egui::Panel::right("player_stats_sidebar")
             .resizable(false)
-            .exact_size(220.0)
+            .exact_size(if self.player_sidebar_open {
+                220.0
+            } else {
+                36.0
+            })
             .show_inside(ui, |ui| {
-                ui.heading("Player");
-                ui.add_space(8.0);
-                self.show_stats(ui);
+                let toggle_label = if self.player_sidebar_open { ">" } else { "<" };
+                if ui.button(toggle_label).clicked() {
+                    self.player_sidebar_open = !self.player_sidebar_open;
+                }
+
+                if self.player_sidebar_open {
+                    ui.add_space(12.0);
+                    ui.heading("Player");
+                    ui.add_space(8.0);
+                    self.show_stats(ui);
+                }
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
@@ -300,10 +314,6 @@ impl DreamstackApp {
             .num_columns(2)
             .spacing([24.0, 8.0])
             .show(ui, |ui| {
-                ui.label("Level");
-                ui.label(self.level.number.to_string());
-                ui.end_row();
-
                 ui.label("Money");
                 ui.label(format!("{:.3}", self.player.money()));
                 ui.end_row();

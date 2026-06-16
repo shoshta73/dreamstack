@@ -2,6 +2,12 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
+## Unreleased
+
+### UI
+
+- Made the player stats sidebar collapsible and removed the level field from it.
+
 ## 26w25a [2026-06-15]
 
 ### UI
