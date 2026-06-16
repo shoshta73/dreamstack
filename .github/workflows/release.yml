@@ -25,8 +25,24 @@ jobs:
 
   build-release:
     name: Release Binary
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact-name: dreamstack-linux-x86_64
+            binary-path: target/release/dreamstack
+            packaged-binary: dreamstack-linux-x86_64
+            archive-path: dist/dreamstack-linux-x86_64.tar.gz
+            strip-check: file target/release/dreamstack | grep -q "stripped"
+          - os: windows-latest
+            artifact-name: dreamstack-windows-x86_64
+            binary-path: target/release/dreamstack.exe
+            packaged-binary: dreamstack-windows-x86_64.exe
+            archive-path: dist/dreamstack-windows-x86_64.zip
+            strip-check: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,19 +61,29 @@ jobs:
           CARGO_PROFILE_RELEASE_STRIP: symbols
 
       - name: Verify binary
-        run: file target/release/dreamstack | grep -q "stripped"
+        if: matrix.strip-check != ''
+        run: ${{ matrix.strip-check }}
 
-      - name: Package binary
+      - name: Package Unix binary
+        if: runner.os != 'Windows'
         run: |
           mkdir -p dist/release
-          cp target/release/dreamstack dist/release/dreamstack-linux-x86_64
-          tar -C dist/release -czf dist/dreamstack-linux-x86_64.tar.gz dreamstack-linux-x86_64
+          cp ${{ matrix.binary-path }} dist/release/${{ matrix.packaged-binary }}
+          tar -C dist/release -czf ${{ matrix.archive-path }} ${{ matrix.packaged-binary }}
+
+      - name: Package Windows binary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/release
+          Copy-Item ${{ matrix.binary-path }} dist/release/${{ matrix.packaged-binary }}
+          Compress-Archive -Path dist/release/${{ matrix.packaged-binary }} -DestinationPath ${{ matrix.archive-path }}
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dreamstack-linux-x86_64
-          path: dist/dreamstack-linux-x86_64.tar.gz
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.archive-path }}
           if-no-files-found: error
 
   build-release-with-debug:
@@ -131,6 +157,7 @@ jobs:
         with:
           files: |
             dist/dreamstack-linux-x86_64.tar.gz
+            dist/dreamstack-windows-x86_64.zip
             dist/dreamstack-linux-x86_64-debug.tar.gz
           body_path: release-notes.md
           generate_release_notes: true

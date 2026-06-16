@@ -20,6 +20,23 @@ For release notes, see [CHANGELOG.md](CHANGELOG.md).
 
 For detailed development notes and setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+## Windows
+
+Dreamstack is supported as a native Windows desktop app through `eframe`/`egui`.
+
+Requirements:
+
+- Rust `1.96.0`, as pinned by `rust-toolchain.toml`.
+- Microsoft C++ Build Tools or Visual Studio with the Desktop development with C++ workload.
+
+Build and run:
+
+```sh
+cargo run
+```
+
+Autosaves are written to `autosave.json` in the current working directory. There are no known Windows-specific runtime limitations.
+
 ## License
 
 Dreamstack is licensed under the [BSD-3-Clause](https://opensource.org/license/bsd-3-clause/) license.
