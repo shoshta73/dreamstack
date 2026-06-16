@@ -43,6 +43,12 @@ jobs:
             packaged-binary: dreamstack-windows-x86_64.exe
             archive-path: dist/dreamstack-windows-x86_64.zip
             strip-check: ""
+          - os: macos-13
+            artifact-name: dreamstack-macos-x86_64
+            binary-path: target/release/dreamstack
+            packaged-binary: dreamstack-macos-x86_64
+            archive-path: dist/dreamstack-macos-x86_64.tar.gz
+            strip-check: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -158,6 +164,7 @@ jobs:
           files: |
             dist/dreamstack-linux-x86_64.tar.gz
             dist/dreamstack-windows-x86_64.zip
+            dist/dreamstack-macos-x86_64.tar.gz
             dist/dreamstack-linux-x86_64-debug.tar.gz
           body_path: release-notes.md
           generate_release_notes: true

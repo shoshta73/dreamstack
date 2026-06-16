@@ -61,6 +61,24 @@ Then open `http://localhost:8000`.
 
 Browser autosaves are stored in `localStorage` under the `autosave.json` key. Native autosaves remain file-based.
 
+## macOS
+
+Dreamstack is supported as a native macOS desktop app through `eframe`/`egui`.
+
+Requirements:
+
+- Rust `1.96.0`, as pinned by `rust-toolchain.toml`.
+- Xcode Command Line Tools.
+
+Build and run:
+
+```sh
+xcode-select --install
+cargo run
+```
+
+Autosaves are written to `autosave.json` in the current working directory. Release artifacts are unsigned command-line app binaries, so macOS Gatekeeper may require explicit approval before first launch.
+
 ## License
 
 Dreamstack is licensed under the [BSD-3-Clause](https://opensource.org/license/bsd-3-clause/) license.
