@@ -8,6 +8,11 @@ All notable changes to Dreamstack will be documented in this file.
 
 - Made the player stats sidebar collapsible and removed the level field from it.
 
+### Internal
+
+- Added Windows and macOS build coverage, release artifacts, and platform setup notes.
+- Added web build support with a browser entry point, localStorage autosaves, build coverage, and setup notes.
+
 ## 26w25a [2026-06-15]
 
 ### UI
