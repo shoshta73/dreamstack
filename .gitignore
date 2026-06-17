@@ -5,5 +5,7 @@
 !.github
 
 target
+__pycache__
+*.py[cod]
 autosave.json
 autosave.json.tmp

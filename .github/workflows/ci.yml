@@ -8,6 +8,8 @@ on:
     paths:
       - ".github/workflows/ci.yml"
       - "**/*.rs"
+      - "scripts/**"
+      - "tests/**"
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,3 +39,28 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
+
+  scripts:
+    name: Scripts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Install pytest
+        run: python -m pip install pytest
+
+      - name: Test scripts
+        run: python -m pytest tests
