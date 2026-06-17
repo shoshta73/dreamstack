@@ -12,6 +12,7 @@ All notable changes to Dreamstack will be documented in this file.
 
 - Added Windows and macOS build coverage, release artifacts, and platform setup notes.
 - Added web build support with a browser entry point, localStorage autosaves, build coverage, and setup notes.
+- Added dev-release web deployment under `/dev`.
 
 ## 26w25a [2026-06-15]
 
