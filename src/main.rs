@@ -1,4 +1,6 @@
-use std::{io, time::Instant};
+use std::io;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 
 use eframe::egui;
 #[cfg(target_arch = "wasm32")]
@@ -18,6 +20,11 @@ use tracing::info;
 
 const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
 const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
+
+#[cfg(not(target_arch = "wasm32"))]
+type FrameTime = Instant;
+#[cfg(target_arch = "wasm32")]
+type FrameTime = f64;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
@@ -71,10 +78,30 @@ struct DreamstackApp {
     root_server: Option<String>,
     backdoor_server: Option<String>,
     company_reputation_rate_favor: f64,
-    last_frame_at: Option<Instant>,
+    last_frame_at: Option<FrameTime>,
     game_seconds_buffer: f64,
     real_seconds_since_autosave: f64,
     save_status: String,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn frame_time_now(_context: &egui::Context) -> FrameTime {
+    Instant::now()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn frame_time_now(context: &egui::Context) -> FrameTime {
+    context.input(|input| input.time)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn elapsed_frame_seconds(now: FrameTime, last_frame_at: FrameTime) -> f64 {
+    now.duration_since(last_frame_at).as_secs_f64()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn elapsed_frame_seconds(now: FrameTime, last_frame_at: FrameTime) -> f64 {
+    (now - last_frame_at).max(0.0)
 }
 
 impl Default for DreamstackApp {
@@ -115,10 +142,10 @@ enum Screen {
 impl eframe::App for DreamstackApp {
     fn logic(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         if self.screen == Screen::Working {
-            self.advance_working_time();
+            self.advance_working_time(frame_time_now(context));
             context.request_repaint();
         } else {
-            self.last_frame_at = Some(Instant::now());
+            self.last_frame_at = Some(frame_time_now(context));
         }
     }
 
@@ -364,7 +391,7 @@ impl DreamstackApp {
 
     fn start_job(&mut self) {
         self.screen = Screen::Working;
-        self.last_frame_at = Some(Instant::now());
+        self.last_frame_at = None;
         self.real_seconds_since_autosave = 0.0;
         self.save_status = format!(
             "You took the {} job. Starting level {}.",
@@ -374,13 +401,12 @@ impl DreamstackApp {
         self.write_autosave();
     }
 
-    fn advance_working_time(&mut self) {
-        let now = Instant::now();
+    fn advance_working_time(&mut self, now: FrameTime) {
         let elapsed_real_seconds = self
             .last_frame_at
             .replace(now)
             .map_or(0.0, |last_frame_at| {
-                now.duration_since(last_frame_at).as_secs_f64()
+                elapsed_frame_seconds(now, last_frame_at)
             });
 
         self.real_seconds_since_autosave += elapsed_real_seconds;

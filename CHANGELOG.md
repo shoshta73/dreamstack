@@ -4,6 +4,12 @@ All notable changes to Dreamstack will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Fixed browser builds by using egui frame time instead of native `std::time::Instant`.
+
+### Internal
+
 - Removed macOS artifacts from dev-release builds.
 
 ## 26w25b [2026-06-17]
