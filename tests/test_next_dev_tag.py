@@ -2,7 +2,8 @@ import datetime as dt
 import importlib.machinery
 import importlib.util
 from pathlib import Path
-import unittest
+
+import pytest
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "next-dev-tag"
@@ -13,9 +14,8 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(next_dev_tag)
 
 
-class ChangelogHeadingTest(unittest.TestCase):
-    def test_updates_first_unreleased_heading(self) -> None:
-        changelog = """# Changelog
+def test_updates_first_unreleased_heading() -> None:
+    changelog = """# Changelog
 
 ## Unreleased
 
@@ -26,15 +26,13 @@ class ChangelogHeadingTest(unittest.TestCase):
 - Older literal heading.
 """
 
-        updated = next_dev_tag.changelog_with_dev_heading(
-            changelog,
-            "26w25g",
-            dt.date(2026, 6, 17),
-        )
+    updated = next_dev_tag.changelog_with_dev_heading(
+        changelog,
+        "26w25g",
+        dt.date(2026, 6, 17),
+    )
 
-        self.assertEqual(
-            updated,
-            """# Changelog
+    assert updated == """# Changelog
 
 ## 26w25g [2026-06-17]
 
@@ -43,17 +41,13 @@ class ChangelogHeadingTest(unittest.TestCase):
 ## Unreleased
 
 - Older literal heading.
-""",
+"""
+
+
+def test_requires_unreleased_heading() -> None:
+    with pytest.raises(ValueError):
+        next_dev_tag.changelog_with_dev_heading(
+            "# Changelog\n\n## 26w25f [2026-06-17]\n",
+            "26w25g",
+            dt.date(2026, 6, 17),
         )
-
-    def test_requires_unreleased_heading(self) -> None:
-        with self.assertRaises(ValueError):
-            next_dev_tag.changelog_with_dev_heading(
-                "# Changelog\n\n## 26w25f [2026-06-17]\n",
-                "26w25g",
-                dt.date(2026, 6, 17),
-            )
-
-
-if __name__ == "__main__":
-    unittest.main()

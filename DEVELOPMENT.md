@@ -15,7 +15,7 @@ cargo build --workspace
 cargo test --workspace
 cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-python -m unittest discover -s tests  # script tests
+python -m pytest tests  # script tests
 cargo insta review     # review pending snapshot changes
 cargo insta accept     # accept pending snapshot changes
 ```

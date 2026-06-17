@@ -17,7 +17,7 @@ cargo test             # run unit tests, including inline insta snapshots
 cargo test <name>      # run a focused test by name substring
 cargo fmt --check      # CI formatting check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-python -m unittest discover -s tests  # script tests
+python -m pytest tests  # script tests
 cargo insta review     # review newly generated/changed snapshots
 cargo insta accept     # accept pending snapshot changes
 ```
