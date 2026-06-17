@@ -7,6 +7,11 @@ All notable changes to Dreamstack will be documented in this file.
 ### Gameplay
 
 - Lowered tutorial job pay and charisma experience rewards.
+- Renamed the finite level onboarding flow to tutorials to better fit endless progression.
+
+### Persistence
+
+- Renamed autosave progression fields from level to tutorial terminology.
 
 ## 26w25f [2026-06-17]
 

@@ -12,7 +12,7 @@ mod log;
 mod player;
 mod save;
 
-use game::{Clock, Level, company_reputation_rate_multiplier, level_0, level_1};
+use game::{Clock, Tutorial, company_reputation_rate_multiplier, tutorial_0, tutorial_1};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 #[cfg(not(target_arch = "wasm32"))]
@@ -66,7 +66,7 @@ fn main() {}
 
 struct DreamstackApp {
     player: Player,
-    level: Level,
+    tutorial: Tutorial,
     clock: Clock,
     screen: Screen,
     sidebar_open: bool,
@@ -108,7 +108,7 @@ impl Default for DreamstackApp {
     fn default() -> Self {
         Self {
             player: Player::default(),
-            level: level_0(),
+            tutorial: tutorial_0(),
             clock: Clock::default(),
             screen: Screen::default(),
             sidebar_open: true,
@@ -163,7 +163,7 @@ impl eframe::App for DreamstackApp {
                     ui.add_space(12.0);
                     egui::CollapsingHeader::new("Hacking").show(ui, |ui| {
                         if ui
-                            .add_enabled(self.level.number != 0, egui::Button::new("Terminal"))
+                            .add_enabled(self.tutorial.number != 0, egui::Button::new("Terminal"))
                             .clicked()
                         {
                             self.open_terminal();
@@ -216,17 +216,17 @@ impl eframe::App for DreamstackApp {
 
 impl DreamstackApp {
     fn employer(&self) -> &game::Employer {
-        self.level
+        self.tutorial
             .employers
             .first()
-            .expect("level should have an employer")
+            .expect("tutorial should have an employer")
     }
 
     fn job(&self) -> &game::Job {
         self.employer()
             .jobs
             .first()
-            .expect("level should have a job")
+            .expect("tutorial should have a job")
     }
 
     fn show_intro(&mut self, ui: &mut egui::Ui) {
@@ -234,13 +234,13 @@ impl DreamstackApp {
         let job = self.job();
 
         ui.label(format!(
-            "Level {}: {}",
-            self.level.number,
-            self.level_title()
+            "Tutorial {}: {}",
+            self.tutorial.number,
+            self.tutorial_title()
         ));
         ui.label(format!(
             "Complete one {}-hour work shift.",
-            self.level.duration_seconds / 3_600
+            self.tutorial.duration_seconds / 3_600
         ));
         ui.add_space(12.0);
         ui.label(format!(
@@ -267,7 +267,7 @@ impl DreamstackApp {
     }
 
     fn show_working(&mut self, ui: &mut egui::Ui) {
-        let progress = self.clock.elapsed_seconds() as f32 / self.level.duration_seconds as f32;
+        let progress = self.clock.elapsed_seconds() as f32 / self.tutorial.duration_seconds as f32;
 
         ui.label(format!(
             "Working as {} at {}",
@@ -277,17 +277,17 @@ impl DreamstackApp {
         ui.add(egui::ProgressBar::new(progress).text(format!(
             "game time {} / {}:00:00",
             self.clock,
-            self.level.duration_seconds / 3_600
+            self.tutorial.duration_seconds / 3_600
         )));
         ui.add_space(20.0);
 
-        if ui.button("Skip the rest of this level").clicked() {
-            self.skip_level();
+        if ui.button("Skip the rest of this shift").clicked() {
+            self.skip_tutorial();
         }
     }
 
     fn show_complete(&mut self, ui: &mut egui::Ui) {
-        ui.label(format!("Level {} complete.", self.level.number));
+        ui.label(format!("Tutorial {} complete.", self.tutorial.number));
         ui.add_space(20.0);
         ui.label("Convert all company reputation into favor for the next part of the game?");
 
@@ -308,7 +308,7 @@ impl DreamstackApp {
     }
 
     fn show_terminal_prompt(&self, ui: &mut egui::Ui) {
-        ui.label(format!("Level {} shift complete.", self.level.number));
+        ui.label(format!("Tutorial {} shift complete.", self.tutorial.number));
         ui.add_space(12.0);
         ui.label("Open the Hacking group in the sidebar and press Terminal to continue.");
     }
@@ -394,9 +394,9 @@ impl DreamstackApp {
         self.last_frame_at = None;
         self.real_seconds_since_autosave = 0.0;
         self.save_status = format!(
-            "You took the {} job. Starting level {}.",
+            "You took the {} job. Starting tutorial {}.",
             self.job().name,
-            self.level.number
+            self.tutorial.number
         );
         self.write_autosave();
     }
@@ -418,7 +418,7 @@ impl DreamstackApp {
         }
 
         self.game_seconds_buffer -= game_seconds as f64;
-        let remaining_seconds = self.level.duration_seconds - self.clock.elapsed_seconds();
+        let remaining_seconds = self.tutorial.duration_seconds - self.clock.elapsed_seconds();
         game_seconds = game_seconds.min(remaining_seconds);
         self.apply_work_rewards(game_seconds);
         self.clock.advance_by(game_seconds);
@@ -428,20 +428,20 @@ impl DreamstackApp {
             self.write_autosave();
         }
 
-        if self.clock.elapsed_seconds() >= self.level.duration_seconds {
-            self.finish_level();
+        if self.clock.elapsed_seconds() >= self.tutorial.duration_seconds {
+            self.finish_tutorial();
         }
     }
 
-    fn skip_level(&mut self) {
-        let remaining_seconds = self.level.duration_seconds - self.clock.elapsed_seconds();
+    fn skip_tutorial(&mut self) {
+        let remaining_seconds = self.tutorial.duration_seconds - self.clock.elapsed_seconds();
         self.apply_work_rewards(remaining_seconds);
         self.clock.advance_by(remaining_seconds);
-        self.save_status = format!("Skipped the rest of level {}.", self.level.number);
-        self.finish_level();
+        self.save_status = format!("Skipped the rest of tutorial {}.", self.tutorial.number);
+        self.finish_tutorial();
     }
 
-    fn finish_level(&mut self) {
+    fn finish_tutorial(&mut self) {
         self.screen = if self.has_hacking_intro() {
             Screen::TerminalPrompt
         } else {
@@ -453,32 +453,32 @@ impl DreamstackApp {
     fn advance_after_reputation_choice(&mut self, save_status: &str) {
         self.save_status = save_status.to_string();
 
-        if self.level.number == 0 {
-            self.start_level_1();
+        if self.tutorial.number == 0 {
+            self.start_tutorial_1();
         } else {
             self.write_autosave();
             self.screen = Screen::Finished;
         }
     }
 
-    fn start_level_1(&mut self) {
+    fn start_tutorial_1(&mut self) {
         let employer_name = self.employer().name.clone();
         self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
         self.player.reset_money();
         self.player.clear_skill_experience();
         self.player.clear_company_standings();
 
-        self.level = level_1();
+        self.tutorial = tutorial_1();
         self.clock = Clock::default();
         self.screen = Screen::Intro;
         self.last_frame_at = None;
         self.game_seconds_buffer = 0.0;
         self.real_seconds_since_autosave = 0.0;
-        self.save_status.push_str(" Starting level 1.");
+        self.save_status.push_str(" Starting tutorial 1.");
         self.write_autosave();
     }
 
-    fn level_title(&self) -> &'static str {
+    fn tutorial_title(&self) -> &'static str {
         if self.has_hacking_intro() {
             "Hacking System"
         } else {
@@ -487,11 +487,13 @@ impl DreamstackApp {
     }
 
     fn has_hacking_intro(&self) -> bool {
-        !self.level.servers.is_empty()
+        !self.tutorial.servers.is_empty()
     }
 
     fn open_terminal(&mut self) {
-        if self.has_hacking_intro() && self.clock.elapsed_seconds() >= self.level.duration_seconds {
+        if self.has_hacking_intro()
+            && self.clock.elapsed_seconds() >= self.tutorial.duration_seconds
+        {
             self.terminal_input.clear();
             self.terminal_lines = vec![
                 "connected to home server: dreamstack".to_string(),
@@ -540,7 +542,7 @@ impl DreamstackApp {
 
     fn run_netscan(&mut self) {
         let server_lines: Vec<String> = self
-            .level
+            .tutorial
             .servers
             .iter()
             .map(|server| {
@@ -599,7 +601,7 @@ impl DreamstackApp {
         }
 
         let Some(server) = self
-            .level
+            .tutorial
             .servers
             .iter()
             .find(|server| server.name == hostname)
@@ -624,7 +626,7 @@ impl DreamstackApp {
         };
 
         let Some(server) = self
-            .level
+            .tutorial
             .servers
             .iter()
             .find(|server| server.name == hostname)
@@ -696,7 +698,7 @@ impl DreamstackApp {
         }
 
         let Some(server) = self
-            .level
+            .tutorial
             .servers
             .iter()
             .find(|server| server.name == hostname)
@@ -732,9 +734,9 @@ impl DreamstackApp {
         let employer_name = self.employer().name.clone();
         let job_name = self.job().name.clone();
 
-        match write_level_autosave(
+        match write_tutorial_autosave(
             &self.player,
-            self.level.number,
+            self.tutorial.number,
             &self.clock,
             &employer_name,
             &job_name,
@@ -751,16 +753,16 @@ impl DreamstackApp {
     }
 }
 
-fn write_level_autosave(
+fn write_tutorial_autosave(
     player: &Player,
-    active_level: u8,
+    active_tutorial: u8,
     clock: &Clock,
     employer_name: &str,
     job_name: &str,
 ) -> io::Result<()> {
     let save_file = SaveFile::new(
         player.to_save(),
-        active_level,
+        active_tutorial,
         clock.elapsed_seconds(),
         Some(SavedActiveJob::new(employer_name, job_name)),
     );

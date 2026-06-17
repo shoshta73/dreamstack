@@ -26,12 +26,12 @@ struct SaveMeta {
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 struct SaveState {
     player: SavedPlayer,
-    active_level: u8,
-    level: SavedLevel,
+    active_tutorial: u8,
+    tutorial: SavedTutorial,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-struct SavedLevel {
+struct SavedTutorial {
     elapsed_seconds: u64,
     active_job: Option<SavedActiveJob>,
 }
@@ -54,7 +54,7 @@ impl SavedActiveJob {
 impl SaveFile {
     pub(crate) fn new(
         player: SavedPlayer,
-        active_level: u8,
+        active_tutorial: u8,
         elapsed_seconds: u64,
         active_job: Option<SavedActiveJob>,
     ) -> Self {
@@ -64,8 +64,8 @@ impl SaveFile {
             },
             state: SaveState {
                 player,
-                active_level,
-                level: SavedLevel {
+                active_tutorial,
+                tutorial: SavedTutorial {
                     elapsed_seconds,
                     active_job,
                 },
@@ -158,8 +158,8 @@ mod tests {
                 }
               ]
             },
-            "active_level": 0,
-            "level": {
+            "active_tutorial": 0,
+            "tutorial": {
               "elapsed_seconds": 28800,
               "active_job": {
                 "employer_name": "employer0",

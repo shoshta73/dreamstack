@@ -6,7 +6,7 @@ const FAVOR_UNIT: f64 = 0.01;
 const COMPANY_REPUTATION_RATE_BONUS_PER_FAVOR: f64 = 0.005;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Level {
+pub(crate) struct Tutorial {
     pub(crate) number: u8,
     pub(crate) duration_seconds: u64,
     pub(crate) employers: Vec<Employer>,
@@ -73,8 +73,8 @@ pub(crate) fn company_reputation_rate_multiplier(favor: f64) -> f64 {
     1.0 + favor / FAVOR_UNIT * COMPANY_REPUTATION_RATE_BONUS_PER_FAVOR
 }
 
-pub(crate) fn level_0() -> Level {
-    Level {
+pub(crate) fn tutorial_0() -> Tutorial {
+    Tutorial {
         number: 0,
         duration_seconds: 8 * 60 * 60,
         employers: load_employers(),
@@ -82,8 +82,8 @@ pub(crate) fn level_0() -> Level {
     }
 }
 
-pub(crate) fn level_1() -> Level {
-    Level {
+pub(crate) fn tutorial_1() -> Tutorial {
+    Tutorial {
         number: 1,
         duration_seconds: 8 * 60 * 60,
         employers: load_employers(),
@@ -142,19 +142,19 @@ impl fmt::Display for Clock {
 
 #[cfg(test)]
 mod tests {
-    use super::{Clock, level_0, level_1};
+    use super::{Clock, tutorial_0, tutorial_1};
     use test_case::test_case;
 
     #[test]
-    fn level_0_introduces_employee_job() {
-        let level = level_0();
+    fn tutorial_0_introduces_employee_job() {
+        let tutorial = tutorial_0();
 
-        assert_eq!(level.number, 0);
-        assert_eq!(level.duration_seconds, 28_800);
-        assert_eq!(level.employers.len(), 1);
-        assert_eq!(level.servers.len(), 0);
+        assert_eq!(tutorial.number, 0);
+        assert_eq!(tutorial.duration_seconds, 28_800);
+        assert_eq!(tutorial.employers.len(), 1);
+        assert_eq!(tutorial.servers.len(), 0);
 
-        let employer = &level.employers[0];
+        let employer = &tutorial.employers[0];
         assert_eq!(employer.name, "employer0");
         assert_eq!(employer.jobs.len(), 1);
 
@@ -166,15 +166,15 @@ mod tests {
     }
 
     #[test]
-    fn level_1_introduces_hacking_server() {
-        let level = level_1();
+    fn tutorial_1_introduces_hacking_server() {
+        let tutorial = tutorial_1();
 
-        assert_eq!(level.number, 1);
-        assert_eq!(level.duration_seconds, 28_800);
-        assert_eq!(level.employers.len(), 1);
-        assert_eq!(level.servers.len(), 1);
+        assert_eq!(tutorial.number, 1);
+        assert_eq!(tutorial.duration_seconds, 28_800);
+        assert_eq!(tutorial.employers.len(), 1);
+        assert_eq!(tutorial.servers.len(), 1);
 
-        let server = &level.servers[0];
+        let server = &tutorial.servers[0];
         assert_eq!(server.name, "server0");
         assert_eq!(server.hack_skill_needed, 1);
         assert_eq!(server.min_security, 1.0);
@@ -184,19 +184,19 @@ mod tests {
 
     #[test]
     fn job_calculates_rewards_for_worked_seconds() {
-        let level = level_0();
-        let job = &level.employers[0].jobs[0];
+        let tutorial = tutorial_0();
+        let job = &tutorial.employers[0].jobs[0];
 
         assert_eq!(job.pay_for_seconds(3_600), 7.000);
-        assert_eq!(job.pay_for_seconds(level.duration_seconds), 56.000);
+        assert_eq!(job.pay_for_seconds(tutorial.duration_seconds), 56.000);
         assert_eq!(job.company_reputation_for_seconds(60), 0.060);
         assert_eq!(
-            job.company_reputation_for_seconds(level.duration_seconds),
+            job.company_reputation_for_seconds(tutorial.duration_seconds),
             28.800
         );
         assert_eq!(job.charisma_experience_for_seconds(60), 1.200);
         assert_eq!(
-            job.charisma_experience_for_seconds(level.duration_seconds),
+            job.charisma_experience_for_seconds(tutorial.duration_seconds),
             576.000
         );
     }
