@@ -2,6 +2,10 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
+## Unreleased
+
+- Removed macOS artifacts from dev-release builds.
+
 ## 26w25b [2026-06-17]
 
 ### UI
