@@ -15,6 +15,7 @@ cargo build --workspace
 cargo test --workspace
 cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
+python -m unittest discover -s tests  # script tests
 cargo insta review     # review pending snapshot changes
 cargo insta accept     # accept pending snapshot changes
 ```
@@ -62,9 +63,11 @@ scripts/next-dev-tag create  # create the next dev-release tag locally
 scripts/next-dev-tag push    # create and push the next dev-release tag
 ```
 
+`create` and `push` replace the first `## Unreleased` heading in `CHANGELOG.md` with `## <tag> [YYYY-MM-DD]` before creating the tag. The script exits without creating a tag if that heading is missing.
+
 ## Release Notes
 
-The dev-release workflow uses the first `##` section in `CHANGELOG.md` as the release notes body.
+The dev-release workflow uses the first `##` section in `CHANGELOG.md` as the release notes body. After creating a dev tag, this should be the dated heading written by `scripts/next-dev-tag`.
 
 ## Game Data
 

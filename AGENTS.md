@@ -17,6 +17,7 @@ cargo test             # run unit tests, including inline insta snapshots
 cargo test <name>      # run a focused test by name substring
 cargo fmt --check      # CI formatting check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
+python -m unittest discover -s tests  # script tests
 cargo insta review     # review newly generated/changed snapshots
 cargo insta accept     # accept pending snapshot changes
 ```
@@ -24,7 +25,7 @@ cargo insta accept     # accept pending snapshot changes
 ## Testing
 
 - Rust toolchain is pinned to `1.96.0` in `rust-toolchain.toml`; let `rustup` install/use it.
-- CI runs `cargo fmt --check`, then clippy with `-D warnings`, then `cargo test --workspace`.
+- CI runs `cargo fmt --check`, then clippy with `-D warnings`, then `cargo test --workspace`, plus Python script tests on Linux, Windows, and macOS.
 - Tests are inline in `src/*.rs` and use `test-case` plus inline `insta` snapshots.
 - Run `cargo test` after snapshot edits before `cargo insta review` or `cargo insta accept`.
 
