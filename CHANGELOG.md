@@ -2,6 +2,12 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
+## Ureleased
+
+### Gameplay
+
+- Lowered tutorial job pay and charisma experience rewards.
+
 ## 26w25f [2026-06-17]
 
 ### Fixed
