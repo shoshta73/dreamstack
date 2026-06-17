@@ -3,9 +3,9 @@
     "name": "employer0",
     "jobs": [{
       "name": "employee",
-      "hourly_pay": 110.000,
+      "hourly_pay": 7.000,
       "company_reputation_per_second": 0.001,
-      "charisma_experience_per_second":0.200
+      "charisma_experience_per_second":0.020
     }]
   }
 ]

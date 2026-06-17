@@ -123,7 +123,7 @@ mod tests {
         let save_file = SaveFile::new(
             SavedPlayer {
                 money: 880.0,
-                charisma_experience: 5_760.0,
+                charisma_experience: 576.0,
                 charisma_skill: 1,
                 hack_experience: 25.0,
                 hack_skill: 1,
@@ -146,7 +146,7 @@ mod tests {
           "state": {
             "player": {
               "money": 880.0,
-              "charisma_experience": 5760.0,
+              "charisma_experience": 576.0,
               "charisma_skill": 1,
               "hack_experience": 25.0,
               "hack_skill": 1,

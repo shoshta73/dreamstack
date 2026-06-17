@@ -305,13 +305,13 @@ mod tests {
         let mut player = Player::default();
 
         player.earn_money(879.9999999999998);
-        player.gain_charisma_experience(5_760.000000000002);
+        player.gain_charisma_experience(576.0000000000002);
         player.gain_hack_experience(24.999999999999996);
 
         let saved = player.to_save();
 
         assert_eq!(saved.money, 1_904.0);
-        assert_eq!(saved.charisma_experience, 5_760.0);
+        assert_eq!(saved.charisma_experience, 576.0);
         assert_eq!(saved.hack_experience, 25.0);
     }
 }

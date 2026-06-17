@@ -160,9 +160,9 @@ mod tests {
 
         let job = &employer.jobs[0];
         assert_eq!(job.name, "employee");
-        assert_eq!(job.hourly_pay, 110.000);
+        assert_eq!(job.hourly_pay, 7.000);
         assert_eq!(job.company_reputation_per_second, 0.001);
-        assert_eq!(job.charisma_experience_per_second, 0.200);
+        assert_eq!(job.charisma_experience_per_second, 0.020);
     }
 
     #[test]
@@ -187,17 +187,17 @@ mod tests {
         let level = level_0();
         let job = &level.employers[0].jobs[0];
 
-        assert_eq!(job.pay_for_seconds(3_600), 110.000);
-        assert_eq!(job.pay_for_seconds(level.duration_seconds), 880.000);
+        assert_eq!(job.pay_for_seconds(3_600), 7.000);
+        assert_eq!(job.pay_for_seconds(level.duration_seconds), 56.000);
         assert_eq!(job.company_reputation_for_seconds(60), 0.060);
         assert_eq!(
             job.company_reputation_for_seconds(level.duration_seconds),
             28.800
         );
-        assert_eq!(job.charisma_experience_for_seconds(60), 12.000);
+        assert_eq!(job.charisma_experience_for_seconds(60), 1.200);
         assert_eq!(
             job.charisma_experience_for_seconds(level.duration_seconds),
-            5_760.000
+            576.000
         );
     }
 
