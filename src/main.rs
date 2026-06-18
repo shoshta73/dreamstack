@@ -79,6 +79,7 @@ struct DreamstackApp {
     connected_server: Option<String>,
     root_server: Option<String>,
     backdoor_server: Option<String>,
+    editor_unlocked: bool,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<FrameTime>,
     game_seconds_buffer: f64,
@@ -121,6 +122,7 @@ impl Default for DreamstackApp {
             connected_server: None,
             root_server: None,
             backdoor_server: None,
+            editor_unlocked: false,
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -137,6 +139,7 @@ enum Screen {
     Working,
     TerminalPrompt,
     Terminal,
+    Editor,
     Complete,
     Finished,
 }
@@ -169,6 +172,14 @@ impl eframe::App for DreamstackApp {
                             .clicked()
                         {
                             self.open_terminal();
+                        }
+                    });
+                    egui::CollapsingHeader::new("Automation").show(ui, |ui| {
+                        if ui
+                            .add_enabled(self.editor_unlocked, egui::Button::new("Editor"))
+                            .clicked()
+                        {
+                            self.open_editor();
                         }
                     });
                 }
@@ -204,6 +215,7 @@ impl eframe::App for DreamstackApp {
                 Screen::Working => self.show_working(ui),
                 Screen::TerminalPrompt => self.show_terminal_prompt(ui),
                 Screen::Terminal => self.show_terminal(ui),
+                Screen::Editor => self.show_editor(ui),
                 Screen::Complete => self.show_complete(ui),
                 Screen::Finished => self.show_finished(ui),
             }
@@ -358,6 +370,10 @@ impl DreamstackApp {
                     }
                 });
             });
+    }
+
+    fn show_editor(&self, ui: &mut egui::Ui) {
+        ui.label("Editor unlocked.");
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
@@ -519,6 +535,15 @@ impl DreamstackApp {
             self.screen = Screen::Terminal;
         } else {
             self.save_status = "Finish your shift before using Terminal.".to_string();
+        }
+    }
+
+    fn open_editor(&mut self) {
+        if self.editor_unlocked {
+            self.screen = Screen::Editor;
+            self.save_status = "Editor opened.".to_string();
+        } else {
+            self.save_status = "Hack a server during tutorial 2 to unlock Editor.".to_string();
         }
     }
 
@@ -725,6 +750,17 @@ impl DreamstackApp {
         self.terminal_lines.push(format!(
             "hack complete: gained {hack_experience:.3} hack exp"
         ));
+        if self.tutorial.number == 1 {
+            self.save_status = format!("Hacked {hostname} and completed tutorial 1.");
+            self.screen = Screen::Complete;
+            self.write_autosave();
+            return;
+        }
+        if self.tutorial.number == 2 {
+            self.editor_unlocked = true;
+            self.terminal_lines
+                .push("editor unlocked; open Automation > Editor in the sidebar".to_string());
+        }
         self.save_status = format!("Hacked {hostname} and gained {hack_experience:.3} hack exp.");
         self.write_autosave();
     }
