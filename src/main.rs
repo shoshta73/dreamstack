@@ -80,6 +80,7 @@ struct DreamstackApp {
     root_server: Option<String>,
     backdoor_server: Option<String>,
     editor_unlocked: bool,
+    editor_text: String,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<FrameTime>,
     game_seconds_buffer: f64,
@@ -123,6 +124,7 @@ impl Default for DreamstackApp {
             root_server: None,
             backdoor_server: None,
             editor_unlocked: false,
+            editor_text: "-- Lua automation script\n".to_string(),
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -372,8 +374,29 @@ impl DreamstackApp {
             });
     }
 
-    fn show_editor(&self, ui: &mut egui::Ui) {
-        ui.label("Editor unlocked.");
+    fn show_editor(&mut self, ui: &mut egui::Ui) {
+        ui.label("Lua Automation Editor");
+        ui.add_space(8.0);
+        ui.label("Write Lua automation scripts here.");
+        ui.add_space(8.0);
+
+        ui.add(
+            egui::TextEdit::multiline(&mut self.editor_text)
+                .desired_rows(16)
+                .desired_width(f32::INFINITY)
+                .font(egui::TextStyle::Monospace)
+                .hint_text("-- Lua automation script"),
+        );
+
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            if ui.button("Clear").clicked() {
+                self.editor_text.clear();
+                self.save_status = "Editor cleared.".to_string();
+            }
+
+            ui.label(format!("{} chars", self.editor_text.chars().count()));
+        });
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
