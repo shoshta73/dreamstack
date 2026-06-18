@@ -12,7 +12,9 @@ mod log;
 mod player;
 mod save;
 
-use game::{Clock, Tutorial, company_reputation_rate_multiplier, tutorial_0, tutorial_1};
+use game::{
+    Clock, Tutorial, company_reputation_rate_multiplier, tutorial_0, tutorial_1, tutorial_2,
+};
 use player::Player;
 use save::{SaveFile, SavedActiveJob, write_autosave};
 #[cfg(not(target_arch = "wasm32"))]
@@ -453,28 +455,38 @@ impl DreamstackApp {
     fn advance_after_reputation_choice(&mut self, save_status: &str) {
         self.save_status = save_status.to_string();
 
-        if self.tutorial.number == 0 {
-            self.start_tutorial_1();
-        } else {
-            self.write_autosave();
-            self.screen = Screen::Finished;
+        match self.tutorial.number {
+            0 => self.start_tutorial_1(),
+            1 => self.start_tutorial_2(),
+            _ => {
+                self.write_autosave();
+                self.screen = Screen::Finished;
+            }
         }
     }
 
     fn start_tutorial_1(&mut self) {
+        self.start_next_tutorial(tutorial_1(), " Starting tutorial 1.");
+    }
+
+    fn start_tutorial_2(&mut self) {
+        self.start_next_tutorial(tutorial_2(), " Starting tutorial 2.");
+    }
+
+    fn start_next_tutorial(&mut self, tutorial: Tutorial, save_status_suffix: &str) {
         let employer_name = self.employer().name.clone();
         self.company_reputation_rate_favor = self.player.company_favor(&employer_name);
         self.player.reset_money();
         self.player.clear_skill_experience();
         self.player.clear_company_standings();
 
-        self.tutorial = tutorial_1();
+        self.tutorial = tutorial;
         self.clock = Clock::default();
         self.screen = Screen::Intro;
         self.last_frame_at = None;
         self.game_seconds_buffer = 0.0;
         self.real_seconds_since_autosave = 0.0;
-        self.save_status.push_str(" Starting tutorial 1.");
+        self.save_status.push_str(save_status_suffix);
         self.write_autosave();
     }
 

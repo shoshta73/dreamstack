@@ -91,6 +91,15 @@ pub(crate) fn tutorial_1() -> Tutorial {
     }
 }
 
+pub(crate) fn tutorial_2() -> Tutorial {
+    Tutorial {
+        number: 2,
+        duration_seconds: 8 * 60 * 60,
+        employers: load_employers(),
+        servers: load_servers(),
+    }
+}
+
 fn load_employers() -> Vec<Employer> {
     serde_json::from_str(include_str!("../data/employers.json"))
         .expect("data/employers.json should contain valid employers")
@@ -142,7 +151,7 @@ impl fmt::Display for Clock {
 
 #[cfg(test)]
 mod tests {
-    use super::{Clock, tutorial_0, tutorial_1};
+    use super::{Clock, tutorial_0, tutorial_1, tutorial_2};
     use test_case::test_case;
 
     #[test]
@@ -170,6 +179,23 @@ mod tests {
         let tutorial = tutorial_1();
 
         assert_eq!(tutorial.number, 1);
+        assert_eq!(tutorial.duration_seconds, 28_800);
+        assert_eq!(tutorial.employers.len(), 1);
+        assert_eq!(tutorial.servers.len(), 1);
+
+        let server = &tutorial.servers[0];
+        assert_eq!(server.name, "server0");
+        assert_eq!(server.hack_skill_needed, 1);
+        assert_eq!(server.min_security, 1.0);
+        assert_eq!(server.max_money(), 100_000.0);
+        assert_eq!(server.hack_experience_reward(), 25.0);
+    }
+
+    #[test]
+    fn tutorial_2_copies_tutorial_1_hacking_server() {
+        let tutorial = tutorial_2();
+
+        assert_eq!(tutorial.number, 2);
         assert_eq!(tutorial.duration_seconds, 28_800);
         assert_eq!(tutorial.employers.len(), 1);
         assert_eq!(tutorial.servers.len(), 1);
