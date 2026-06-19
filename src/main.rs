@@ -6,6 +6,7 @@ use eframe::egui;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, prelude::*};
 
+#[cfg(not(target_arch = "wasm32"))]
 mod ds;
 mod game;
 #[cfg(not(target_arch = "wasm32"))]
@@ -394,6 +395,7 @@ impl DreamstackApp {
 
         ui.add_space(8.0);
         ui.horizontal(|ui| {
+            #[cfg(not(target_arch = "wasm32"))]
             if ui.button("Run").clicked() {
                 match ds::run_script(&self.editor_text) {
                     Ok(output) => {
@@ -406,6 +408,10 @@ impl DreamstackApp {
                     }
                 }
             }
+
+            #[cfg(target_arch = "wasm32")]
+            ui.add_enabled(false, egui::Button::new("Run"))
+                .on_disabled_hover_text("Lua automation is available in the native app.");
 
             if ui.button("Clear").clicked() {
                 self.editor_text.clear();
