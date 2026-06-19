@@ -6,6 +6,7 @@ use eframe::egui;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, prelude::*};
 
+mod ds;
 mod game;
 #[cfg(not(target_arch = "wasm32"))]
 mod log;
@@ -81,6 +82,7 @@ struct DreamstackApp {
     backdoor_server: Option<String>,
     editor_unlocked: bool,
     editor_text: String,
+    editor_output: Vec<String>,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<FrameTime>,
     game_seconds_buffer: f64,
@@ -124,7 +126,9 @@ impl Default for DreamstackApp {
             root_server: None,
             backdoor_server: None,
             editor_unlocked: false,
-            editor_text: "-- Lua automation script\n".to_string(),
+            editor_text: "local function main(ds)\n    ds.print(\"hello from automation\")\nend\n"
+                .to_string(),
+            editor_output: Vec::new(),
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
             game_seconds_buffer: 0.0,
@@ -390,6 +394,19 @@ impl DreamstackApp {
 
         ui.add_space(8.0);
         ui.horizontal(|ui| {
+            if ui.button("Run").clicked() {
+                match ds::run_script(&self.editor_text) {
+                    Ok(output) => {
+                        self.editor_output = output;
+                        self.save_status = "Lua script ran.".to_string();
+                    }
+                    Err(error) => {
+                        self.editor_output.clear();
+                        self.save_status = format!("Lua script failed: {error}");
+                    }
+                }
+            }
+
             if ui.button("Clear").clicked() {
                 self.editor_text.clear();
                 self.save_status = "Editor cleared.".to_string();
@@ -397,6 +414,14 @@ impl DreamstackApp {
 
             ui.label(format!("{} chars", self.editor_text.chars().count()));
         });
+
+        if !self.editor_output.is_empty() {
+            ui.add_space(8.0);
+            ui.label("Output");
+            for line in &self.editor_output {
+                ui.monospace(line);
+            }
+        }
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
