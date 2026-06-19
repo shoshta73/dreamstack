@@ -66,6 +66,49 @@ def test_update_changelog_heading_writes_changelog(tmp_path, monkeypatch) -> Non
     monkeypatch.setattr(next_dev_tag, "CHANGELOG_PATH", changelog_path)
     monkeypatch.setattr(next_dev_tag.dt, "date", FixedDate)
 
-    next_dev_tag.update_changelog_heading(EXAMPLE_TAG)
+    updated = next_dev_tag.update_changelog_heading(EXAMPLE_TAG)
 
+    assert updated
     assert changelog_path.read_text().splitlines()[2] == "## 99w01a [2099-01-02]"
+
+
+def test_update_changelog_heading_skips_without_unreleased(tmp_path, monkeypatch) -> None:
+    changelog_path = tmp_path / "CHANGELOG.md"
+    changelog = "# Changelog\n\n## 99w01a [2099-01-02]\n"
+    changelog_path.write_text(changelog)
+    monkeypatch.setattr(next_dev_tag, "CHANGELOG_PATH", changelog_path)
+
+    updated = next_dev_tag.update_changelog_heading(EXAMPLE_TAG)
+
+    assert not updated
+    assert changelog_path.read_text() == changelog
+
+
+def test_create_tag_commits_changelog_before_tag(monkeypatch) -> None:
+    git_calls = []
+
+    monkeypatch.setattr(next_dev_tag, "ensure_clean_worktree", lambda force: None)
+    monkeypatch.setattr(next_dev_tag, "tag_exists", lambda tag: False)
+    monkeypatch.setattr(next_dev_tag, "update_changelog_heading", lambda tag: True)
+    monkeypatch.setattr(next_dev_tag, "require_git", lambda args: git_calls.append(args) or "")
+
+    next_dev_tag.create_tag(EXAMPLE_TAG, force=False)
+
+    assert git_calls == [
+        ["add", "CHANGELOG.md"],
+        ["commit", "-m", "chore: update changelog"],
+        ["tag", EXAMPLE_TAG],
+    ]
+
+
+def test_create_tag_without_changelog_update_only_tags(monkeypatch) -> None:
+    git_calls = []
+
+    monkeypatch.setattr(next_dev_tag, "ensure_clean_worktree", lambda force: None)
+    monkeypatch.setattr(next_dev_tag, "tag_exists", lambda tag: False)
+    monkeypatch.setattr(next_dev_tag, "update_changelog_heading", lambda tag: False)
+    monkeypatch.setattr(next_dev_tag, "require_git", lambda args: git_calls.append(args) or "")
+
+    next_dev_tag.create_tag(EXAMPLE_TAG, force=False)
+
+    assert git_calls == [["tag", EXAMPLE_TAG]]

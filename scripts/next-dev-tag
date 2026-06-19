@@ -98,17 +98,23 @@ def changelog_with_dev_heading(changelog: str, tag: str, today: dt.date) -> str:
     return updated
 
 
-def update_changelog_heading(tag: str) -> None:
+def update_changelog_heading(tag: str) -> bool:
     try:
         changelog = CHANGELOG_PATH.read_text()
-        updated = changelog_with_dev_heading(changelog, tag, dt.date.today())
+        try:
+            updated = changelog_with_dev_heading(changelog, tag, dt.date.today())
+        except ValueError:
+            return False
         CHANGELOG_PATH.write_text(updated)
+        return True
     except OSError as error:
         print(f"Failed to update CHANGELOG.md: {error}", file=sys.stderr)
         sys.exit(1)
-    except ValueError as error:
-        print(error, file=sys.stderr)
-        sys.exit(1)
+
+
+def commit_changelog() -> None:
+    require_git(["add", str(CHANGELOG_PATH)])
+    require_git(["commit", "-m", "chore: update changelog"])
 
 
 def create_tag(tag: str, force: bool) -> None:
@@ -116,7 +122,8 @@ def create_tag(tag: str, force: bool) -> None:
     if tag_exists(tag):
         print(f"Tag already exists: {tag}", file=sys.stderr)
         sys.exit(1)
-    update_changelog_heading(tag)
+    if update_changelog_heading(tag):
+        commit_changelog()
     require_git(["tag", tag])
 
 
