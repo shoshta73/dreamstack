@@ -7,11 +7,13 @@ use eframe::egui;
 use wasm_bindgen::{JsCast, prelude::*};
 
 mod ds;
+mod editor;
 mod game;
 #[cfg(not(target_arch = "wasm32"))]
 mod log;
 mod player;
 mod save;
+mod terminal;
 
 use game::{
     Clock, Tutorial, company_reputation_rate_multiplier, tutorial_0, tutorial_1, tutorial_2,
@@ -67,27 +69,27 @@ pub async fn start() -> Result<(), wasm_bindgen::JsValue> {
 #[cfg(target_arch = "wasm32")]
 fn main() {}
 
-struct DreamstackApp {
-    player: Player,
-    tutorial: Tutorial,
-    clock: Clock,
-    screen: Screen,
+pub(crate) struct DreamstackApp {
+    pub(crate) player: Player,
+    pub(crate) tutorial: Tutorial,
+    pub(crate) clock: Clock,
+    pub(crate) screen: Screen,
     sidebar_open: bool,
     player_sidebar_open: bool,
-    terminal_input: String,
-    terminal_lines: Vec<String>,
-    terminal_scanned: bool,
-    connected_server: Option<String>,
-    root_server: Option<String>,
-    backdoor_server: Option<String>,
-    editor_unlocked: bool,
-    editor_text: String,
-    editor_output: Vec<String>,
+    pub(crate) terminal_input: String,
+    pub(crate) terminal_lines: Vec<String>,
+    pub(crate) terminal_scanned: bool,
+    pub(crate) connected_server: Option<String>,
+    pub(crate) root_server: Option<String>,
+    pub(crate) backdoor_server: Option<String>,
+    pub(crate) editor_unlocked: bool,
+    pub(crate) editor_text: String,
+    pub(crate) editor_output: Vec<String>,
     company_reputation_rate_favor: f64,
     last_frame_at: Option<FrameTime>,
     game_seconds_buffer: f64,
     real_seconds_since_autosave: f64,
-    save_status: String,
+    pub(crate) save_status: String,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -139,7 +141,7 @@ impl Default for DreamstackApp {
 }
 
 #[derive(Default, PartialEq)]
-enum Screen {
+pub(crate) enum Screen {
     #[default]
     Intro,
     Working,
@@ -235,14 +237,14 @@ impl eframe::App for DreamstackApp {
 }
 
 impl DreamstackApp {
-    fn employer(&self) -> &game::Employer {
+    pub(crate) fn employer(&self) -> &game::Employer {
         self.tutorial
             .employers
             .first()
             .expect("tutorial should have an employer")
     }
 
-    fn job(&self) -> &game::Job {
+    pub(crate) fn job(&self) -> &game::Job {
         self.employer()
             .jobs
             .first()
@@ -331,97 +333,6 @@ impl DreamstackApp {
         ui.label(format!("Tutorial {} shift complete.", self.tutorial.number));
         ui.add_space(12.0);
         ui.label("Open the Hacking group in the sidebar and press Terminal to continue.");
-    }
-
-    fn show_terminal(&mut self, ui: &mut egui::Ui) {
-        let terminal_text = egui::Color32::from_rgb(125, 255, 162);
-        let terminal_dim = egui::Color32::from_rgb(66, 132, 86);
-        let terminal_fill = egui::Color32::from_rgb(5, 10, 7);
-
-        egui::Frame::group(ui.style())
-            .fill(terminal_fill)
-            .stroke(egui::Stroke::new(1.0, terminal_dim))
-            .inner_margin(egui::Margin::same(12))
-            .show(ui, |ui| {
-                ui.visuals_mut().override_text_color = Some(terminal_text);
-                ui.monospace("home server terminal");
-                ui.separator();
-
-                egui::ScrollArea::vertical()
-                    .stick_to_bottom(true)
-                    .max_height((ui.available_height() - 44.0).max(240.0))
-                    .show(ui, |ui| {
-                        for line in &self.terminal_lines {
-                            ui.monospace(line);
-                        }
-                    });
-
-                ui.add_space(8.0);
-                ui.horizontal(|ui| {
-                    ui.monospace(self.terminal_prompt());
-                    let response = ui.add(
-                        egui::TextEdit::singleline(&mut self.terminal_input)
-                            .desired_width(f32::INFINITY)
-                            .hint_text("netscan")
-                            .text_color(terminal_text)
-                            .frame(egui::Frame::NONE),
-                    );
-                    response.request_focus();
-
-                    let pressed_enter = response.has_focus()
-                        && ui.input(|input| input.key_pressed(egui::Key::Enter));
-
-                    if pressed_enter {
-                        self.run_terminal_command();
-                    }
-                });
-            });
-    }
-
-    fn show_editor(&mut self, ui: &mut egui::Ui) {
-        ui.label("Rhai Automation Editor");
-        ui.add_space(8.0);
-        ui.label("Write Rhai automation scripts here.");
-        ui.add_space(8.0);
-
-        ui.add(
-            egui::TextEdit::multiline(&mut self.editor_text)
-                .desired_rows(16)
-                .desired_width(f32::INFINITY)
-                .font(egui::TextStyle::Monospace)
-                .hint_text("// Rhai automation script"),
-        );
-
-        ui.add_space(8.0);
-        ui.horizontal(|ui| {
-            if ui.button("Run").clicked() {
-                match ds::run_script(&self.editor_text) {
-                    Ok(output) => {
-                        self.editor_output = output;
-                        self.save_status = "Rhai script ran.".to_string();
-                    }
-                    Err(error) => {
-                        self.editor_output.clear();
-                        self.save_status = format!("Rhai script failed: {error}");
-                    }
-                }
-            }
-
-            if ui.button("Clear").clicked() {
-                self.editor_text.clear();
-                self.save_status = "Editor cleared.".to_string();
-            }
-
-            ui.label(format!("{} chars", self.editor_text.chars().count()));
-        });
-
-        if !self.editor_output.is_empty() {
-            ui.add_space(8.0);
-            ui.label("Output");
-            for line in &self.editor_output {
-                ui.monospace(line);
-            }
-        }
     }
 
     fn show_finished(&self, ui: &mut egui::Ui) {
@@ -562,255 +473,8 @@ impl DreamstackApp {
         }
     }
 
-    fn has_hacking_intro(&self) -> bool {
+    pub(crate) fn has_hacking_intro(&self) -> bool {
         !self.tutorial.servers.is_empty()
-    }
-
-    fn open_terminal(&mut self) {
-        if self.has_hacking_intro()
-            && self.clock.elapsed_seconds() >= self.tutorial.duration_seconds
-        {
-            self.terminal_input.clear();
-            self.terminal_lines = vec![
-                "connected to home server: dreamstack".to_string(),
-                "Run `netscan` to discover nearby servers.".to_string(),
-            ];
-            self.terminal_scanned = false;
-            self.connected_server = None;
-            self.root_server = None;
-            self.backdoor_server = None;
-            self.save_status = "Terminal opened.".to_string();
-            self.screen = Screen::Terminal;
-        } else {
-            self.save_status = "Finish your shift before using Terminal.".to_string();
-        }
-    }
-
-    fn open_editor(&mut self) {
-        if self.editor_unlocked {
-            self.screen = Screen::Editor;
-            self.save_status = "Editor opened.".to_string();
-        } else {
-            self.save_status = "Hack a server during tutorial 2 to unlock Editor.".to_string();
-        }
-    }
-
-    fn run_terminal_command(&mut self) {
-        let command = self.terminal_input.trim().to_string();
-        if command.is_empty() {
-            return;
-        }
-
-        self.terminal_lines
-            .push(format!("{} {command}", self.terminal_prompt()));
-        self.terminal_input.clear();
-
-        if command == "netscan" {
-            self.run_netscan();
-        } else if let Some(hostname) = command.strip_prefix("connect ") {
-            self.connect_server(hostname);
-        } else if command == "scan" {
-            self.scan_connected_server();
-        } else if command == "nuke" {
-            self.nuke_connected_server();
-        } else if command == "npm i -g backdoor" {
-            self.install_backdoor();
-        } else if command == "hack" {
-            self.hack_connected_server();
-        } else if command == "home" {
-            self.return_home();
-        } else {
-            self.terminal_lines
-                .push(format!("unknown command: {command}"));
-        }
-    }
-
-    fn run_netscan(&mut self) {
-        let server_lines: Vec<String> = self
-            .tutorial
-            .servers
-            .iter()
-            .map(|server| {
-                format!(
-                    "{} | skill {} | security {:.1} | money {:.3}",
-                    server.name,
-                    server.hack_skill_needed,
-                    server.min_security,
-                    server.max_money()
-                )
-            })
-            .collect();
-
-        if server_lines.is_empty() {
-            self.terminal_lines.push("no servers found".to_string());
-            return;
-        }
-
-        self.terminal_lines.push("servers found:".to_string());
-        self.terminal_lines.extend(server_lines);
-        self.terminal_lines
-            .push("Run `connect <hostname>` to connect to a server.".to_string());
-        self.terminal_scanned = true;
-    }
-
-    fn terminal_prompt(&self) -> String {
-        if let Some(hostname) = self.connected_server.as_deref() {
-            let username = if self.root_server.as_deref() == Some(hostname) {
-                "root"
-            } else {
-                "user"
-            };
-
-            format!("{username}@{hostname}:~$")
-        } else {
-            "home@dreamstack:~$".to_string()
-        }
-    }
-
-    fn return_home(&mut self) {
-        let Some(hostname) = self.connected_server.take() else {
-            self.terminal_lines
-                .push("already connected to home server".to_string());
-            return;
-        };
-
-        self.terminal_lines
-            .push(format!("disconnected from {hostname}; returned home"));
-    }
-
-    fn connect_server(&mut self, hostname: &str) {
-        if !self.terminal_scanned {
-            self.terminal_lines
-                .push("run `netscan` before connecting".to_string());
-            return;
-        }
-
-        let Some(server) = self
-            .tutorial
-            .servers
-            .iter()
-            .find(|server| server.name == hostname)
-        else {
-            self.terminal_lines
-                .push(format!("connect failed: unknown host {hostname}"));
-            return;
-        };
-
-        self.connected_server = Some(server.name.clone());
-        self.terminal_lines
-            .push(format!("connected to {}", server.name));
-        self.terminal_lines
-            .push("Run `scan` to inspect the connected server.".to_string());
-    }
-
-    fn scan_connected_server(&mut self) {
-        let Some(hostname) = self.connected_server.as_deref() else {
-            self.terminal_lines
-                .push("connect to a server before scanning".to_string());
-            return;
-        };
-
-        let Some(server) = self
-            .tutorial
-            .servers
-            .iter()
-            .find(|server| server.name == hostname)
-        else {
-            self.terminal_lines
-                .push(format!("scan failed: lost connection to {hostname}"));
-            return;
-        };
-
-        self.terminal_lines
-            .push(format!("scan report: {}", server.name));
-        self.terminal_lines
-            .push(format!("required hack skill: {}", server.hack_skill_needed));
-        self.terminal_lines
-            .push(format!("minimum security: {:.1}", server.min_security));
-        self.terminal_lines
-            .push(format!("maximum money: {:.3}", server.max_money()));
-        self.terminal_lines.push(
-            "Run `nuke`; if successful, it will give you root access to the server.".to_string(),
-        );
-    }
-
-    fn nuke_connected_server(&mut self) {
-        let Some(hostname) = self.connected_server.as_deref() else {
-            self.terminal_lines
-                .push("connect to a server before running nuke".to_string());
-            return;
-        };
-
-        self.root_server = Some(hostname.to_string());
-        self.terminal_lines.push(format!(
-            "nuke successful: root access granted on {hostname}"
-        ));
-        self.terminal_lines
-            .push("Run `npm i -g backdoor` to install a backdoor.".to_string());
-    }
-
-    fn install_backdoor(&mut self) {
-        let Some(hostname) = self.connected_server.as_deref() else {
-            self.terminal_lines
-                .push("connect to a server before installing a backdoor".to_string());
-            return;
-        };
-
-        if self.root_server.as_deref() != Some(hostname) {
-            self.terminal_lines
-                .push("root access required before installing a backdoor".to_string());
-            return;
-        }
-
-        self.backdoor_server = Some(hostname.to_string());
-        self.terminal_lines
-            .push(format!("backdoor installed on {hostname}"));
-        self.terminal_lines
-            .push("Run `hack` to drain the server.".to_string());
-    }
-
-    fn hack_connected_server(&mut self) {
-        let Some(hostname) = self.connected_server.as_deref() else {
-            self.terminal_lines
-                .push("connect to a server before hacking".to_string());
-            return;
-        };
-
-        if self.backdoor_server.as_deref() != Some(hostname) {
-            self.terminal_lines
-                .push("install a backdoor before hacking".to_string());
-            return;
-        }
-
-        let Some(server) = self
-            .tutorial
-            .servers
-            .iter()
-            .find(|server| server.name == hostname)
-        else {
-            self.terminal_lines
-                .push(format!("hack failed: lost connection to {hostname}"));
-            return;
-        };
-
-        let hack_experience = server.hack_experience_reward();
-        self.player.gain_hack_experience(hack_experience);
-        self.terminal_lines.push(format!(
-            "hack complete: gained {hack_experience:.3} hack exp"
-        ));
-        if self.tutorial.number == 1 {
-            self.save_status = format!("Hacked {hostname} and completed tutorial 1.");
-            self.screen = Screen::Complete;
-            self.write_autosave();
-            return;
-        }
-        if self.tutorial.number == 2 {
-            self.editor_unlocked = true;
-            self.terminal_lines
-                .push("editor unlocked; open Automation > Editor in the sidebar".to_string());
-        }
-        self.save_status = format!("Hacked {hostname} and gained {hack_experience:.3} hack exp.");
-        self.write_autosave();
     }
 
     fn apply_work_rewards(&mut self, seconds: u64) {
@@ -826,7 +490,7 @@ impl DreamstackApp {
         self.player.gain_charisma_experience(charisma_experience);
     }
 
-    fn write_autosave(&mut self) {
+    pub(crate) fn write_autosave(&mut self) {
         let employer_name = self.employer().name.clone();
         let job_name = self.job().name.clone();
 
