@@ -8,6 +8,14 @@ All notable changes to Dreamstack will be documented in this file.
 
 - Switched automation scripting to Rhai so scripts run in both native and browser builds.
 
+### UI
+
+- Updated the automation editor from Lua to Rhai syntax and restored browser script execution.
+
+### Scripting
+
+- Replaced the initial Lua `ds` API with Rhai `main(ds)` scripts and `ds_print(ds, ...)` output capture.
+
 ## 26w25g [2026-06-19]
 
 ### Gameplay
@@ -20,11 +28,11 @@ All notable changes to Dreamstack will be documented in this file.
 ### UI
 
 - Added a locked Automation Editor tab that unlocks after hacking during tutorial 2.
-- Added a Rhai automation editor with a runnable demo script and captured output display.
+- Added a Lua automation editor with a runnable demo script and captured output display.
 
 ### Scripting
 
-- Added the initial `ds` scripting API with `ds_print(ds, ...)` support.
+- Added the initial `ds` Lua API with `ds.print(...)` support.
 
 ### Persistence
 
