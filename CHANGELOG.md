@@ -2,7 +2,7 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
-## Unreleased
+## 26w25g [2026-06-19]
 
 ### Gameplay
 
