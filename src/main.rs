@@ -6,7 +6,6 @@ use eframe::egui;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, prelude::*};
 
-#[cfg(not(target_arch = "wasm32"))]
 mod ds;
 mod game;
 #[cfg(not(target_arch = "wasm32"))]
@@ -127,7 +126,7 @@ impl Default for DreamstackApp {
             root_server: None,
             backdoor_server: None,
             editor_unlocked: false,
-            editor_text: "local function main(ds)\n    ds.print(\"hello from automation\")\nend\n"
+            editor_text: "fn main(ds) {\n    ds_print(ds, \"hello from automation\");\n}\n"
                 .to_string(),
             editor_output: Vec::new(),
             company_reputation_rate_favor: 0.0,
@@ -380,9 +379,9 @@ impl DreamstackApp {
     }
 
     fn show_editor(&mut self, ui: &mut egui::Ui) {
-        ui.label("Lua Automation Editor");
+        ui.label("Rhai Automation Editor");
         ui.add_space(8.0);
-        ui.label("Write Lua automation scripts here.");
+        ui.label("Write Rhai automation scripts here.");
         ui.add_space(8.0);
 
         ui.add(
@@ -390,28 +389,23 @@ impl DreamstackApp {
                 .desired_rows(16)
                 .desired_width(f32::INFINITY)
                 .font(egui::TextStyle::Monospace)
-                .hint_text("-- Lua automation script"),
+                .hint_text("// Rhai automation script"),
         );
 
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            #[cfg(not(target_arch = "wasm32"))]
             if ui.button("Run").clicked() {
                 match ds::run_script(&self.editor_text) {
                     Ok(output) => {
                         self.editor_output = output;
-                        self.save_status = "Lua script ran.".to_string();
+                        self.save_status = "Rhai script ran.".to_string();
                     }
                     Err(error) => {
                         self.editor_output.clear();
-                        self.save_status = format!("Lua script failed: {error}");
+                        self.save_status = format!("Rhai script failed: {error}");
                     }
                 }
             }
-
-            #[cfg(target_arch = "wasm32")]
-            ui.add_enabled(false, egui::Button::new("Run"))
-                .on_disabled_hover_text("Lua automation is available in the native app.");
 
             if ui.button("Clear").clicked() {
                 self.editor_text.clear();

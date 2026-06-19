@@ -1,39 +1,40 @@
-use mlua::{Function, Lua, Result, Value, Variadic};
+use std::{cell::RefCell, rc::Rc};
 
-pub(crate) fn run_script(script: &str) -> Result<Vec<String>> {
-    let lua = Lua::new();
-    let ds = lua.create_table()?;
-    let output = lua.create_table()?;
-    let print_output = output.clone();
+use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 
-    ds.set(
-        "print",
-        lua.create_function(move |_, values: Variadic<Value>| {
-            let line = values
-                .into_iter()
-                .map(lua_value_to_string)
-                .collect::<Vec<_>>()
-                .join("\t");
-            print_output.push(line)
-        })?,
-    )?;
-
-    let wrapped_script = format!("{script}\nreturn main");
-
-    let main: Function = lua.load(&wrapped_script).eval()?;
-    main.call::<()>(ds)?;
-
-    output.sequence_values().collect()
+#[derive(Clone)]
+struct Ds {
+    output: Rc<RefCell<Vec<String>>>,
 }
 
-fn lua_value_to_string(value: Value) -> String {
-    match value {
-        Value::Nil => "nil".to_string(),
-        Value::Boolean(value) => value.to_string(),
-        Value::Integer(value) => value.to_string(),
-        Value::Number(value) => value.to_string(),
-        Value::String(value) => value.to_string_lossy(),
-        _ => format!("{value:?}"),
+impl Ds {
+    fn print(&mut self, value: Dynamic) {
+        self.output.borrow_mut().push(dynamic_to_string(&value));
+    }
+}
+
+pub(crate) fn run_script(script: &str) -> Result<Vec<String>, Box<EvalAltResult>> {
+    let output = Rc::new(RefCell::new(Vec::new()));
+    let ds = Ds {
+        output: Rc::clone(&output),
+    };
+    let mut engine = Engine::new();
+    engine.register_type_with_name::<Ds>("Ds");
+    engine.register_fn("ds_print", Ds::print);
+
+    let ast = engine.compile(script)?;
+    engine.call_fn::<()>(&mut Scope::new(), &ast, "main", (ds,))?;
+
+    Ok(output.borrow().clone())
+}
+
+fn dynamic_to_string(value: &Dynamic) -> String {
+    if value.is::<()>() {
+        "()".to_string()
+    } else if let Some(value) = value.clone().try_cast::<String>() {
+        value
+    } else {
+        value.to_string()
     }
 }
 
@@ -45,9 +46,11 @@ mod tests {
     fn runs_main_with_ds_api() {
         let output = run_script(
             r#"
-            local function main(ds)
-                assert(ds ~= nil)
-            end
+            fn main(ds) {
+                if ds == () {
+                    throw "missing ds";
+                }
+            }
             "#,
         )
         .unwrap();
@@ -59,14 +62,17 @@ mod tests {
     fn ds_print_captures_output() {
         let output = run_script(
             r#"
-            local function main(ds)
-                ds.print("money", 1024, true, nil)
-            end
+            fn main(ds) {
+                ds_print(ds, "money");
+                ds_print(ds, 1024);
+                ds_print(ds, true);
+                ds_print(ds, ());
+            }
             "#,
         )
         .unwrap();
 
-        assert_eq!(output, vec!["money\t1024\ttrue\tnil"]);
+        assert_eq!(output, vec!["money", "1024", "true", "()"]);
     }
 
     #[test]
