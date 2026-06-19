@@ -6,7 +6,7 @@ All notable changes to Dreamstack will be documented in this file.
 
 ### Fixed
 
-- Kept the Lua runtime native-only so web builds compile while disabling script execution in the browser.
+- Switched automation scripting to Rhai so scripts run in both native and browser builds.
 
 ## 26w25g [2026-06-19]
 
@@ -20,11 +20,11 @@ All notable changes to Dreamstack will be documented in this file.
 ### UI
 
 - Added a locked Automation Editor tab that unlocks after hacking during tutorial 2.
-- Added a Lua automation editor with a runnable demo script and captured output display.
+- Added a Rhai automation editor with a runnable demo script and captured output display.
 
 ### Scripting
 
-- Added the initial `ds` Lua API with `ds.print(...)` support.
+- Added the initial `ds` scripting API with `ds_print(ds, ...)` support.
 
 ### Persistence
 
