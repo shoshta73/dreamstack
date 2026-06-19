@@ -2,6 +2,12 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Kept the Lua runtime native-only so web builds compile while disabling script execution in the browser.
+
 ## 26w25g [2026-06-19]
 
 ### Gameplay
