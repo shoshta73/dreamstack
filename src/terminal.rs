@@ -280,7 +280,7 @@ impl DreamstackApp {
         if self.tutorial.number == 2 {
             self.editor_unlocked = true;
             self.terminal_lines
-                .push("editor unlocked; open Automation > Editor in the sidebar".to_string());
+                .push("editor unlocked; open Hacking > Editor in the sidebar".to_string());
         }
         self.save_status = format!("Hacked {hostname} and gained {hack_experience:.3} hack exp.");
         self.write_autosave();

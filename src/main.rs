@@ -181,8 +181,7 @@ impl eframe::App for DreamstackApp {
                         {
                             self.open_terminal();
                         }
-                    });
-                    egui::CollapsingHeader::new("Automation").show(ui, |ui| {
+
                         if ui
                             .add_enabled(self.editor_unlocked, egui::Button::new("Editor"))
                             .clicked()
