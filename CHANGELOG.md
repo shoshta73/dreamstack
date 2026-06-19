@@ -2,12 +2,23 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
-## Ureleased
+## Unreleased
 
 ### Gameplay
 
 - Lowered tutorial job pay and charisma experience rewards.
 - Renamed the finite level onboarding flow to tutorials to better fit endless progression.
+- Added tutorial 2 as a copy of tutorial 1.
+- Tutorial 1 now advances after a successful hack, with the same reputation-to-favor choice before tutorial 2.
+
+### UI
+
+- Added a locked Automation Editor tab that unlocks after hacking during tutorial 2.
+- Added a Lua automation editor with a runnable demo script and captured output display.
+
+### Scripting
+
+- Added the initial `ds` Lua API with `ds.print(...)` support.
 
 ### Persistence
 
