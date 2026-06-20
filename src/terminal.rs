@@ -26,6 +26,18 @@ impl DreamstackApp {
                         }
                     });
 
+                if let Some(hack_execution) = &self.hack_execution {
+                    let progress = hack_execution.progress();
+                    let progress_text = hack_execution.progress_text();
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        ui.add(egui::ProgressBar::new(progress).text(progress_text));
+                        if ui.button("Skip hack").clicked() {
+                            self.skip_hack_execution();
+                        }
+                    });
+                }
+
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
                     ui.monospace(self.terminal_prompt());
@@ -351,13 +363,48 @@ impl DreamstackApp {
         self.save_status = format!("Hacked {hostname} and gained {hack_experience:.3} hack exp.");
         self.write_autosave();
     }
+
+    fn skip_hack_execution(&mut self) {
+        let Some(hack_execution) = self.hack_execution.as_mut() else {
+            return;
+        };
+
+        let remaining_seconds = hack_execution.duration_seconds - hack_execution.elapsed_seconds;
+        hack_execution.elapsed_seconds = hack_execution.duration_seconds;
+        self.clock.advance_by(remaining_seconds);
+        self.complete_hack();
+    }
+}
+
+impl HackExecution {
+    fn progress(&self) -> f32 {
+        self.elapsed_seconds as f32 / self.duration_seconds as f32
+    }
+
+    fn progress_text(&self) -> String {
+        format!(
+            "hacking {}: {} / {}",
+            self.hostname,
+            format_duration(self.elapsed_seconds),
+            format_duration(self.duration_seconds)
+        )
+    }
+}
+
+fn format_duration(seconds: u64) -> String {
+    format!(
+        "{:02}:{:02}:{:02}",
+        seconds / 3_600,
+        seconds / 60 % 60,
+        seconds % 60
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use std::time::{Duration, Instant};
 
-    use crate::{DreamstackApp, Screen, game::tutorial_1};
+    use crate::{DreamstackApp, HackExecution, Screen, game::tutorial_1};
 
     fn app_ready_to_hack() -> DreamstackApp {
         let mut app = DreamstackApp {
@@ -396,5 +443,32 @@ mod tests {
         assert_eq!(app.clock.elapsed_seconds(), 36_000);
         assert_eq!(app.player.hack_experience(), 25.0);
         assert!(app.hack_execution.is_none());
+    }
+
+    #[test]
+    fn skip_hack_completes_active_hack() {
+        let mut app = app_ready_to_hack();
+        app.hack_connected_server();
+
+        app.skip_hack_execution();
+
+        assert_eq!(app.clock.elapsed_seconds(), 36_000);
+        assert_eq!(app.player.hack_experience(), 25.0);
+        assert!(app.hack_execution.is_none());
+    }
+
+    #[test]
+    fn hack_progress_text_shows_elapsed_and_total_time() {
+        let hack_execution = HackExecution {
+            hostname: "server0".to_string(),
+            elapsed_seconds: 3_600,
+            duration_seconds: 7_200,
+        };
+
+        assert_eq!(hack_execution.progress(), 0.5);
+        assert_eq!(
+            hack_execution.progress_text(),
+            "hacking server0: 01:00:00 / 02:00:00"
+        );
     }
 }
