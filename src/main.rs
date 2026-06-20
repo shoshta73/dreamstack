@@ -24,12 +24,12 @@ use save::{SaveFile, SavedActiveJob, write_autosave};
 use tracing::info;
 
 const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
-const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
+pub(crate) const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
 
 #[cfg(not(target_arch = "wasm32"))]
-type FrameTime = Instant;
+pub(crate) type FrameTime = Instant;
 #[cfg(target_arch = "wasm32")]
-type FrameTime = f64;
+pub(crate) type FrameTime = f64;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
@@ -82,14 +82,21 @@ pub(crate) struct DreamstackApp {
     pub(crate) connected_server: Option<String>,
     pub(crate) root_server: Option<String>,
     pub(crate) backdoor_server: Option<String>,
+    pub(crate) hack_execution: Option<HackExecution>,
     pub(crate) editor_unlocked: bool,
     pub(crate) editor_text: String,
     pub(crate) editor_output: Vec<String>,
     company_reputation_rate_favor: f64,
-    last_frame_at: Option<FrameTime>,
-    game_seconds_buffer: f64,
+    pub(crate) last_frame_at: Option<FrameTime>,
+    pub(crate) game_seconds_buffer: f64,
     real_seconds_since_autosave: f64,
     pub(crate) save_status: String,
+}
+
+pub(crate) struct HackExecution {
+    pub(crate) hostname: String,
+    pub(crate) elapsed_seconds: u64,
+    pub(crate) duration_seconds: u64,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -103,12 +110,12 @@ fn frame_time_now(context: &egui::Context) -> FrameTime {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn elapsed_frame_seconds(now: FrameTime, last_frame_at: FrameTime) -> f64 {
+pub(crate) fn elapsed_frame_seconds(now: FrameTime, last_frame_at: FrameTime) -> f64 {
     now.duration_since(last_frame_at).as_secs_f64()
 }
 
 #[cfg(target_arch = "wasm32")]
-fn elapsed_frame_seconds(now: FrameTime, last_frame_at: FrameTime) -> f64 {
+pub(crate) fn elapsed_frame_seconds(now: FrameTime, last_frame_at: FrameTime) -> f64 {
     (now - last_frame_at).max(0.0)
 }
 
@@ -127,6 +134,7 @@ impl Default for DreamstackApp {
             connected_server: None,
             root_server: None,
             backdoor_server: None,
+            hack_execution: None,
             editor_unlocked: false,
             editor_text: "fn main(ds) {\n    ds_print(ds, \"hello from automation\");\n}\n"
                 .to_string(),
@@ -156,6 +164,9 @@ impl eframe::App for DreamstackApp {
     fn logic(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         if self.screen == Screen::Working {
             self.advance_working_time(frame_time_now(context));
+            context.request_repaint();
+        } else if self.screen == Screen::Terminal && self.hack_execution.is_some() {
+            self.advance_hack_execution(frame_time_now(context));
             context.request_repaint();
         } else {
             self.last_frame_at = Some(frame_time_now(context));

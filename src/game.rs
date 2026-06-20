@@ -60,6 +60,10 @@ impl Server {
         self.max_money.quantifier * self.max_money.multiplier as f64
     }
 
+    pub(crate) fn hack_duration_seconds(&self) -> u64 {
+        (f64::from(self.hack_skill_needed) * self.min_security * 2.0 * 60.0 * 60.0).round() as u64
+    }
+
     pub(crate) fn hack_experience_reward(&self) -> f64 {
         self.min_security * 25.0
     }
@@ -188,6 +192,7 @@ mod tests {
         assert_eq!(server.hack_skill_needed, 1);
         assert_eq!(server.min_security, 1.0);
         assert_eq!(server.max_money(), 100_000.0);
+        assert_eq!(server.hack_duration_seconds(), 7_200);
         assert_eq!(server.hack_experience_reward(), 25.0);
     }
 
@@ -205,6 +210,7 @@ mod tests {
         assert_eq!(server.hack_skill_needed, 1);
         assert_eq!(server.min_security, 1.0);
         assert_eq!(server.max_money(), 100_000.0);
+        assert_eq!(server.hack_duration_seconds(), 7_200);
         assert_eq!(server.hack_experience_reward(), 25.0);
     }
 

@@ -1,6 +1,6 @@
 use eframe::egui;
 
-use crate::{DreamstackApp, Screen};
+use crate::{DreamstackApp, HackExecution, Screen};
 
 impl DreamstackApp {
     pub(crate) fn show_terminal(&mut self, ui: &mut egui::Ui) {
@@ -71,6 +71,13 @@ impl DreamstackApp {
     fn run_terminal_command(&mut self) {
         let command = self.terminal_input.trim().to_string();
         if command.is_empty() {
+            return;
+        }
+
+        if self.hack_execution.is_some() {
+            self.terminal_lines
+                .push("command blocked: hack already running".to_string());
+            self.terminal_input.clear();
             return;
         }
 
@@ -266,6 +273,65 @@ impl DreamstackApp {
             return;
         };
 
+        let hack_duration_seconds = server.hack_duration_seconds();
+        self.hack_execution = Some(HackExecution {
+            hostname: hostname.to_string(),
+            elapsed_seconds: 0,
+            duration_seconds: hack_duration_seconds,
+        });
+        self.terminal_lines.push(format!(
+            "hack started: execution time {} in-game hours",
+            hack_duration_seconds / 3_600
+        ));
+        self.save_status = format!("Hacking {hostname}...");
+    }
+
+    pub(crate) fn advance_hack_execution(&mut self, now: crate::FrameTime) {
+        let elapsed_real_seconds = self
+            .last_frame_at
+            .replace(now)
+            .map_or(0.0, |last_frame_at| {
+                crate::elapsed_frame_seconds(now, last_frame_at)
+            });
+        self.game_seconds_buffer += elapsed_real_seconds * crate::GAME_SECONDS_PER_REAL_SECOND;
+
+        let Some(hack_execution) = self.hack_execution.as_mut() else {
+            return;
+        };
+
+        let mut game_seconds = self.game_seconds_buffer.floor() as u64;
+        if game_seconds == 0 {
+            return;
+        }
+
+        let remaining_seconds = hack_execution.duration_seconds - hack_execution.elapsed_seconds;
+        game_seconds = game_seconds.min(remaining_seconds);
+        self.game_seconds_buffer -= game_seconds as f64;
+        hack_execution.elapsed_seconds += game_seconds;
+        self.clock.advance_by(game_seconds);
+
+        if hack_execution.elapsed_seconds >= hack_execution.duration_seconds {
+            self.complete_hack();
+        }
+    }
+
+    fn complete_hack(&mut self) {
+        let hack_execution = self
+            .hack_execution
+            .take()
+            .expect("hack execution should be active");
+        let hostname = hack_execution.hostname;
+        let Some(server) = self
+            .tutorial
+            .servers
+            .iter()
+            .find(|server| server.name == hostname)
+        else {
+            self.terminal_lines
+                .push(format!("hack failed: lost connection to {hostname}"));
+            return;
+        };
+
         let hack_experience = server.hack_experience_reward();
         self.player.gain_hack_experience(hack_experience);
         self.terminal_lines.push(format!(
@@ -284,5 +350,51 @@ impl DreamstackApp {
         }
         self.save_status = format!("Hacked {hostname} and gained {hack_experience:.3} hack exp.");
         self.write_autosave();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use crate::{DreamstackApp, Screen, game::tutorial_1};
+
+    fn app_ready_to_hack() -> DreamstackApp {
+        let mut app = DreamstackApp {
+            tutorial: tutorial_1(),
+            screen: Screen::Terminal,
+            terminal_scanned: true,
+            connected_server: Some("server0".to_string()),
+            root_server: Some("server0".to_string()),
+            backdoor_server: Some("server0".to_string()),
+            ..DreamstackApp::default()
+        };
+        app.clock.advance_by(app.tutorial.duration_seconds);
+        app
+    }
+
+    #[test]
+    fn successful_hack_starts_execution_without_completing_immediately() {
+        let mut app = app_ready_to_hack();
+
+        app.hack_connected_server();
+
+        assert_eq!(app.clock.elapsed_seconds(), 28_800);
+        assert_eq!(app.player.hack_experience(), 0.0);
+        assert_eq!(app.hack_execution.unwrap().duration_seconds, 7_200);
+    }
+
+    #[test]
+    fn successful_hack_completes_after_execution_time_passes() {
+        let mut app = app_ready_to_hack();
+        app.hack_connected_server();
+        let now = Instant::now();
+        app.last_frame_at = Some(now - Duration::from_secs(120));
+
+        app.advance_hack_execution(now);
+
+        assert_eq!(app.clock.elapsed_seconds(), 36_000);
+        assert_eq!(app.player.hack_experience(), 25.0);
+        assert!(app.hack_execution.is_none());
     }
 }
