@@ -741,3 +741,143 @@ fn inferred_screen(tutorial: &Tutorial, elapsed_seconds: u64) -> Screen {
         Screen::Complete
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        player::{SavedCompanyStanding, SavedPlayer},
+        save::{SavedApp, SavedHackExecution, SavedScreen},
+    };
+
+    use super::*;
+
+    fn saved_player() -> SavedPlayer {
+        SavedPlayer {
+            money: 880.0,
+            charisma_experience: 576.0,
+            charisma_skill: 1,
+            hack_experience: 25.0,
+            hack_skill: 1,
+            exchange_marker: -1.0,
+            company_standings: vec![SavedCompanyStanding {
+                company_name: "employer0".to_string(),
+                reputation: 28.8,
+            }],
+        }
+    }
+
+    #[test]
+    fn restores_v2_app_state() {
+        let save_file = SaveFile::new(
+            saved_player(),
+            2,
+            28_800,
+            Some(SavedActiveJob::new("employer0", "employee")),
+            SavedApp {
+                screen: SavedScreen::Terminal,
+                terminal_input: "scan".to_string(),
+                terminal_lines: vec!["connected".to_string()],
+                terminal_scanned: true,
+                connected_server: Some("server0".to_string()),
+                root_server: Some("server0".to_string()),
+                backdoor_server: Some("server0".to_string()),
+                hack_execution: Some(SavedHackExecution {
+                    hostname: "server0".to_string(),
+                    elapsed_seconds: 60,
+                    duration_seconds: 7_200,
+                }),
+                editor_unlocked: true,
+                editor_text: "fn main(ds) {}".to_string(),
+                editor_output: vec!["ok".to_string()],
+                company_reputation_rate_favor: 0.05,
+            },
+        );
+
+        let app = DreamstackApp::from_save_file(save_file).unwrap();
+
+        assert!(app.screen == Screen::Terminal);
+        assert_eq!(app.tutorial.number, 2);
+        assert_eq!(app.clock.elapsed_seconds(), 28_800);
+        assert_eq!(app.terminal_input, "scan");
+        assert_eq!(app.terminal_lines, vec!["connected"]);
+        assert!(app.terminal_scanned);
+        assert_eq!(app.connected_server.as_deref(), Some("server0"));
+        assert_eq!(app.root_server.as_deref(), Some("server0"));
+        assert_eq!(app.backdoor_server.as_deref(), Some("server0"));
+        assert_eq!(app.hack_execution.unwrap().elapsed_seconds, 60);
+        assert!(app.editor_unlocked);
+        assert_eq!(app.editor_text, "fn main(ds) {}");
+        assert_eq!(app.editor_output, vec!["ok"]);
+        assert_eq!(app.company_reputation_rate_favor, 0.05);
+    }
+
+    #[test]
+    fn infers_v1_completed_hacking_screen() {
+        let save_file = save::parse_save_file(
+            r#"
+            {
+              "meta": { "version": 1 },
+              "state": {
+                "player": {
+                  "money": 880.0,
+                  "charisma_experience": 576.0,
+                  "charisma_skill": 1,
+                  "hack_experience": 25.0,
+                  "hack_skill": 1,
+                  "botanical_gardens": -1.0,
+                  "company_standings": []
+                },
+                "active_tutorial": 1,
+                "tutorial": {
+                  "elapsed_seconds": 28800,
+                  "active_job": {
+                    "employer_name": "employer0",
+                    "job_name": "employee"
+                  }
+                }
+              }
+            }
+            "#,
+        )
+        .unwrap();
+
+        let app = DreamstackApp::from_save_file(save_file).unwrap();
+
+        assert!(app.screen == Screen::TerminalPrompt);
+    }
+
+    #[test]
+    fn clears_invalid_saved_server_state() {
+        let save_file = SaveFile::new(
+            saved_player(),
+            1,
+            28_800,
+            Some(SavedActiveJob::new("employer0", "employee")),
+            SavedApp {
+                screen: SavedScreen::Terminal,
+                terminal_input: String::new(),
+                terminal_lines: Vec::new(),
+                terminal_scanned: true,
+                connected_server: Some("missing".to_string()),
+                root_server: Some("missing".to_string()),
+                backdoor_server: Some("missing".to_string()),
+                hack_execution: Some(SavedHackExecution {
+                    hostname: "missing".to_string(),
+                    elapsed_seconds: 60,
+                    duration_seconds: 7_200,
+                }),
+                editor_unlocked: false,
+                editor_text: default_editor_text(),
+                editor_output: Vec::new(),
+                company_reputation_rate_favor: 0.0,
+            },
+        );
+
+        let app = DreamstackApp::from_save_file(save_file).unwrap();
+
+        assert_eq!(app.connected_server, None);
+        assert_eq!(app.root_server, None);
+        assert_eq!(app.backdoor_server, None);
+        assert!(app.hack_execution.is_none());
+    }
+}

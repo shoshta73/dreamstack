@@ -135,14 +135,15 @@ struct V1SaveState {
 
 impl V1SaveFile {
     fn migrate(self) -> SaveFile {
-        let elapsed_seconds = self.state.tutorial.elapsed_seconds;
-        SaveFile::new(
-            self.state.player,
-            self.state.active_tutorial,
-            elapsed_seconds,
-            self.state.tutorial.active_job,
-            SavedApp::v1_defaults(),
-        )
+        SaveFile {
+            meta: SaveMeta { version: 1 },
+            state: SaveState {
+                player: self.state.player,
+                active_tutorial: self.state.active_tutorial,
+                tutorial: self.state.tutorial,
+                app: SavedApp::v1_defaults(),
+            },
+        }
     }
 }
 
@@ -189,7 +190,7 @@ pub(crate) fn read_autosave() -> io::Result<Option<SaveFile>> {
     }
 }
 
-fn parse_save_file(json: &str) -> io::Result<SaveFile> {
+pub(crate) fn parse_save_file(json: &str) -> io::Result<SaveFile> {
     let version = serde_json::from_str::<VersionProbe>(json)
         .map_err(io::Error::other)?
         .meta
@@ -258,10 +259,14 @@ fn read_save_file(path: impl AsRef<Path>) -> io::Result<Option<SaveFile>> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_arch = "wasm32"))]
+    use std::{fs, path::PathBuf};
+
     use crate::player::{SavedCompanyStanding, SavedPlayer};
 
     use super::{
         SaveFile, SavedActiveJob, SavedApp, SavedHackExecution, SavedScreen, parse_save_file,
+        read_save_file,
     };
 
     #[test]
@@ -401,5 +406,18 @@ mod tests {
         let error = parse_save_file(r#"{"meta":{"version":99},"state":{}}"#).unwrap_err();
 
         assert!(error.to_string().contains("unsupported save version 99"));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn missing_save_file_returns_none() {
+        let mut path = PathBuf::from(std::env::temp_dir());
+        path.push(format!(
+            "dreamstack-missing-save-{}.json",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&path);
+
+        assert!(read_save_file(&path).unwrap().is_none());
     }
 }

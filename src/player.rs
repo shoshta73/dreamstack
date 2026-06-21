@@ -322,6 +322,30 @@ mod tests {
     }
 
     #[test]
+    fn restores_from_save_data() {
+        let player = Player::from_save(super::SavedPlayer {
+            money: 880.0,
+            charisma_experience: 576.0,
+            charisma_skill: 2,
+            hack_experience: 25.0,
+            hack_skill: 3,
+            exchange_marker: -1.0,
+            company_standings: vec![super::SavedCompanyStanding {
+                company_name: "employer0".to_string(),
+                reputation: 28.8,
+            }],
+        });
+
+        assert_eq!(player.money(), 880.0);
+        assert_eq!(player.charisma_experience(), 576.0);
+        assert_eq!(player.charisma_skill(), 2);
+        assert_eq!(player.hack_experience(), 25.0);
+        assert_eq!(player.hack_skill(), 3);
+        assert_eq!(player.company_reputation("employer0"), 28.8);
+        assert_eq!(player.to_save().exchange_marker, -1.0);
+    }
+
+    #[test]
     fn rounds_save_data() {
         let mut player = Player::default();
 

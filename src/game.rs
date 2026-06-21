@@ -288,6 +288,16 @@ mod tests {
     }
 
     #[test]
+    fn restores_elapsed_seconds() {
+        let clock = Clock::from_elapsed_seconds(3_661);
+
+        assert_eq!(clock.elapsed_seconds(), 3_661);
+        assert_eq!(clock.hour(), 1);
+        assert_eq!(clock.minute(), 1);
+        assert_eq!(clock.second(), 1);
+    }
+
+    #[test]
     fn formats_time() {
         insta::assert_snapshot!(Clock { seconds: 3_661 }.to_string(), @"01:01:01");
     }
