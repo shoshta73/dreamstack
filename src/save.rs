@@ -515,7 +515,10 @@ mod tests {
         assert_eq!(save_file.state.app.terminal_input, "scan");
         assert!(save_file.state.app.terminal_scanned);
         assert!(!save_file.state.app.terminal_server_scanned);
-        assert_eq!(save_file.state.app.connected_server.as_deref(), Some("server0"));
+        assert_eq!(
+            save_file.state.app.connected_server.as_deref(),
+            Some("server0")
+        );
     }
 
     #[test]
