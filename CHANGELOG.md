@@ -4,6 +4,10 @@ All notable changes to Dreamstack will be documented in this file.
 
 ## Unreleased
 
+### UI
+
+- Synced terminal input placeholder hints with the current tutorial command progression.
+
 ### Persistence
 
 - Fixed autosave loading on native and web, expanded saved state coverage, and kept existing v1 saves readable.
