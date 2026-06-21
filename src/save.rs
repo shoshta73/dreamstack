@@ -260,7 +260,7 @@ fn read_save_file(path: impl AsRef<Path>) -> io::Result<Option<SaveFile>> {
 #[cfg(test)]
 mod tests {
     #[cfg(not(target_arch = "wasm32"))]
-    use std::{fs, path::PathBuf};
+    use std::fs;
 
     use crate::player::{SavedCompanyStanding, SavedPlayer};
 
@@ -411,7 +411,7 @@ mod tests {
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn missing_save_file_returns_none() {
-        let mut path = PathBuf::from(std::env::temp_dir());
+        let mut path = std::env::temp_dir();
         path.push(format!(
             "dreamstack-missing-save-{}.json",
             std::process::id()

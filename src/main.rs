@@ -157,17 +157,15 @@ impl Default for DreamstackApp {
 impl DreamstackApp {
     fn load_or_default() -> Self {
         match read_autosave() {
-            Ok(Some(save_file)) => Self::from_save_file(save_file).unwrap_or_else(|error| {
-                let mut app = Self::default();
-                app.save_status = format!("Autosave load failed: {error}");
-                app
+            Ok(Some(save_file)) => Self::from_save_file(save_file).unwrap_or_else(|error| Self {
+                save_status: format!("Autosave load failed: {error}"),
+                ..Default::default()
             }),
             Ok(None) => Self::default(),
-            Err(error) => {
-                let mut app = Self::default();
-                app.save_status = format!("Autosave load failed: {error}");
-                app
-            }
+            Err(error) => Self {
+                save_status: format!("Autosave load failed: {error}"),
+                ..Default::default()
+            },
         }
     }
 
