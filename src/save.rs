@@ -88,6 +88,10 @@ impl SavedActiveJob {
 }
 
 impl SaveFile {
+    pub(crate) fn version(&self) -> u64 {
+        self.meta.version
+    }
+
     pub(crate) fn new(
         player: SavedPlayer,
         active_tutorial: u8,

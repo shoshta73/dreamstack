@@ -19,7 +19,10 @@ use game::{
     Clock, Tutorial, company_reputation_rate_multiplier, tutorial_0, tutorial_1, tutorial_2,
 };
 use player::Player;
-use save::{SaveFile, SavedActiveJob, SavedApp, SavedHackExecution, SavedScreen, write_autosave};
+use save::{
+    SaveFile, SavedActiveJob, SavedApp, SavedHackExecution, SavedScreen, read_autosave,
+    write_autosave,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use tracing::info;
 
@@ -48,7 +51,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Dreamstack",
         options,
-        Box::new(|_creation_context| Ok(Box::new(DreamstackApp::default()))),
+        Box::new(|_creation_context| Ok(Box::new(DreamstackApp::load_or_default()))),
     )
 }
 
@@ -65,7 +68,7 @@ pub async fn start() -> Result<(), wasm_bindgen::JsValue> {
         .start(
             canvas,
             eframe::WebOptions::default(),
-            Box::new(|_creation_context| Ok(Box::new(DreamstackApp::default()))),
+            Box::new(|_creation_context| Ok(Box::new(DreamstackApp::load_or_default()))),
         )
         .await
 }
@@ -148,6 +151,83 @@ impl Default for DreamstackApp {
             real_seconds_since_autosave: 0.0,
             save_status: String::new(),
         }
+    }
+}
+
+impl DreamstackApp {
+    fn load_or_default() -> Self {
+        match read_autosave() {
+            Ok(Some(save_file)) => Self::from_save_file(save_file).unwrap_or_else(|error| {
+                let mut app = Self::default();
+                app.save_status = format!("Autosave load failed: {error}");
+                app
+            }),
+            Ok(None) => Self::default(),
+            Err(error) => {
+                let mut app = Self::default();
+                app.save_status = format!("Autosave load failed: {error}");
+                app
+            }
+        }
+    }
+
+    fn from_save_file(save_file: SaveFile) -> Result<Self, String> {
+        let save_version = save_file.version();
+        let save::SaveState {
+            player,
+            active_tutorial,
+            tutorial: saved_tutorial,
+            app: saved_app,
+        } = save_file.state;
+        let mut tutorial = tutorial_for_number(active_tutorial)?;
+        let elapsed_seconds = saved_tutorial
+            .elapsed_seconds
+            .min(tutorial.duration_seconds);
+        let clock = Clock::from_elapsed_seconds(elapsed_seconds);
+        let screen = if save_version == 1 {
+            inferred_screen(&tutorial, elapsed_seconds)
+        } else {
+            screen_from_save(
+                saved_app.screen,
+                &tutorial,
+                elapsed_seconds,
+                saved_app.editor_unlocked,
+            )
+        };
+        let connected_server = keep_existing_server(saved_app.connected_server, &tutorial);
+        let root_server = keep_existing_server(saved_app.root_server, &tutorial);
+        let backdoor_server = keep_existing_server(saved_app.backdoor_server, &tutorial);
+        let hack_execution = saved_app
+            .hack_execution
+            .and_then(|hack_execution| HackExecution::from_save(hack_execution, &tutorial));
+
+        if active_tutorial == 0 {
+            tutorial.servers.clear();
+        }
+
+        Ok(Self {
+            player: Player::from_save(player),
+            tutorial,
+            clock,
+            screen,
+            sidebar_open: true,
+            player_sidebar_open: true,
+            terminal_input: saved_app.terminal_input,
+            terminal_lines: saved_app.terminal_lines,
+            terminal_scanned: saved_app.terminal_scanned,
+            connected_server,
+            root_server,
+            backdoor_server,
+            hack_execution,
+            editor_unlocked: saved_app.editor_unlocked,
+            editor_text: saved_app.editor_text,
+            editor_output: saved_app.editor_output,
+            company_reputation_rate_favor: saved_app.company_reputation_rate_favor,
+            last_frame_at: None,
+            game_seconds_buffer: 0.0,
+            real_seconds_since_autosave: 0.0,
+            save_status: "Autosave loaded.".to_string(),
+        })
     }
 }
 
@@ -556,6 +636,18 @@ impl DreamstackApp {
 }
 
 impl Screen {
+    fn from_save(saved: SavedScreen) -> Self {
+        match saved {
+            SavedScreen::Intro => Screen::Intro,
+            SavedScreen::Working => Screen::Working,
+            SavedScreen::TerminalPrompt => Screen::TerminalPrompt,
+            SavedScreen::Terminal => Screen::Terminal,
+            SavedScreen::Editor => Screen::Editor,
+            SavedScreen::Complete => Screen::Complete,
+            SavedScreen::Finished => Screen::Finished,
+        }
+    }
+
     fn to_save(&self) -> SavedScreen {
         match self {
             Screen::Intro => SavedScreen::Intro,
@@ -570,11 +662,82 @@ impl Screen {
 }
 
 impl HackExecution {
+    fn from_save(saved: SavedHackExecution, tutorial: &Tutorial) -> Option<Self> {
+        if saved.elapsed_seconds >= saved.duration_seconds {
+            return None;
+        }
+        if !tutorial
+            .servers
+            .iter()
+            .any(|server| server.name == saved.hostname)
+        {
+            return None;
+        }
+
+        Some(Self {
+            hostname: saved.hostname,
+            elapsed_seconds: saved.elapsed_seconds,
+            duration_seconds: saved.duration_seconds,
+        })
+    }
+
     fn to_save(&self) -> SavedHackExecution {
         SavedHackExecution {
             hostname: self.hostname.clone(),
             elapsed_seconds: self.elapsed_seconds,
             duration_seconds: self.duration_seconds,
         }
+    }
+}
+
+fn tutorial_for_number(number: u8) -> Result<Tutorial, String> {
+    match number {
+        0 => Ok(tutorial_0()),
+        1 => Ok(tutorial_1()),
+        2 => Ok(tutorial_2()),
+        number => Err(format!("unknown tutorial {number}")),
+    }
+}
+
+fn keep_existing_server(server_name: Option<String>, tutorial: &Tutorial) -> Option<String> {
+    server_name.filter(|server_name| {
+        tutorial
+            .servers
+            .iter()
+            .any(|server| server.name == *server_name)
+    })
+}
+
+fn screen_from_save(
+    saved: SavedScreen,
+    tutorial: &Tutorial,
+    elapsed_seconds: u64,
+    editor_unlocked: bool,
+) -> Screen {
+    let screen = Screen::from_save(saved);
+    if screen == Screen::Editor && !editor_unlocked {
+        return inferred_screen(tutorial, elapsed_seconds);
+    }
+    if matches!(screen, Screen::Terminal | Screen::TerminalPrompt)
+        && (tutorial.servers.is_empty() || elapsed_seconds < tutorial.duration_seconds)
+    {
+        return inferred_screen(tutorial, elapsed_seconds);
+    }
+    if screen == Screen::Working && elapsed_seconds >= tutorial.duration_seconds {
+        return inferred_screen(tutorial, elapsed_seconds);
+    }
+
+    screen
+}
+
+fn inferred_screen(tutorial: &Tutorial, elapsed_seconds: u64) -> Screen {
+    if elapsed_seconds == 0 {
+        Screen::Intro
+    } else if elapsed_seconds < tutorial.duration_seconds {
+        Screen::Working
+    } else if !tutorial.servers.is_empty() {
+        Screen::TerminalPrompt
+    } else {
+        Screen::Complete
     }
 }

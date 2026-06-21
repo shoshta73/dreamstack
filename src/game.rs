@@ -120,6 +120,10 @@ pub(crate) struct Clock {
 }
 
 impl Clock {
+    pub(crate) fn from_elapsed_seconds(seconds: u64) -> Self {
+        Self { seconds }
+    }
+
     pub(crate) fn advance_by(&mut self, seconds: u64) {
         self.seconds += seconds;
     }

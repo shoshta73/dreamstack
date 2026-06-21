@@ -58,6 +58,27 @@ pub(crate) struct Player {
 }
 
 impl Player {
+    pub(crate) fn from_save(saved: SavedPlayer) -> Self {
+        Self {
+            stats: Stats {
+                money: saved.money,
+                charisma_experience: saved.charisma_experience,
+                charisma_skill: saved.charisma_skill,
+                hack_experience: saved.hack_experience,
+                hack_skill: saved.hack_skill,
+                exchange_marker: saved.exchange_marker,
+                company_standings: saved
+                    .company_standings
+                    .into_iter()
+                    .map(|standing| CompanyStanding {
+                        company_name: standing.company_name,
+                        reputation: standing.reputation,
+                    })
+                    .collect(),
+            },
+        }
+    }
+
     pub(crate) fn earn_money(&mut self, money: f64) {
         self.stats.money += money;
     }
