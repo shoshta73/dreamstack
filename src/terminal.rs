@@ -30,11 +30,15 @@ impl DreamstackApp {
                     let progress = hack_execution.progress();
                     let progress_text = hack_execution.progress_text();
                     ui.add_space(8.0);
-                    ui.horizontal(|ui| {
-                        ui.add(egui::ProgressBar::new(progress).text(progress_text));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Skip hack").clicked() {
                             self.skip_hack_execution();
                         }
+                        ui.add(
+                            egui::ProgressBar::new(progress)
+                                .desired_width(ui.available_width())
+                                .text(progress_text),
+                        );
                     });
                 }
 
