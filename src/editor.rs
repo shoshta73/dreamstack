@@ -24,10 +24,12 @@ impl DreamstackApp {
                     Ok(output) => {
                         self.editor_output = output;
                         self.save_status = "Rhai script ran.".to_string();
+                        self.write_autosave();
                     }
                     Err(error) => {
                         self.editor_output.clear();
                         self.save_status = format!("Rhai script failed: {error}");
+                        self.write_autosave();
                     }
                 }
             }
@@ -35,6 +37,7 @@ impl DreamstackApp {
             if ui.button("Clear").clicked() {
                 self.editor_text.clear();
                 self.save_status = "Editor cleared.".to_string();
+                self.write_autosave();
             }
 
             ui.label(format!("{} chars", self.editor_text.chars().count()));

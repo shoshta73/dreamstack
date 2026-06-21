@@ -90,6 +90,7 @@ impl DreamstackApp {
             self.terminal_lines
                 .push("command blocked: hack already running".to_string());
             self.terminal_input.clear();
+            self.write_autosave();
             return;
         }
 
@@ -115,6 +116,8 @@ impl DreamstackApp {
             self.terminal_lines
                 .push(format!("unknown command: {command}"));
         }
+
+        self.write_autosave();
     }
 
     fn run_netscan(&mut self) {
@@ -305,6 +308,7 @@ impl DreamstackApp {
             .map_or(0.0, |last_frame_at| {
                 crate::elapsed_frame_seconds(now, last_frame_at)
             });
+        self.real_seconds_since_autosave += elapsed_real_seconds;
         self.game_seconds_buffer += elapsed_real_seconds * crate::GAME_SECONDS_PER_REAL_SECOND;
 
         let Some(hack_execution) = self.hack_execution.as_mut() else {
@@ -320,9 +324,15 @@ impl DreamstackApp {
         game_seconds = game_seconds.min(remaining_seconds);
         self.game_seconds_buffer -= game_seconds as f64;
         hack_execution.elapsed_seconds += game_seconds;
+        let hack_completed = hack_execution.elapsed_seconds >= hack_execution.duration_seconds;
         self.clock.advance_by(game_seconds);
 
-        if hack_execution.elapsed_seconds >= hack_execution.duration_seconds {
+        if self.real_seconds_since_autosave >= crate::AUTOSAVE_INTERVAL_SECONDS {
+            self.real_seconds_since_autosave = 0.0;
+            self.write_autosave();
+        }
+
+        if hack_completed {
             self.complete_hack();
         }
     }
