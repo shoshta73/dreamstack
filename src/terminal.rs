@@ -70,6 +70,7 @@ impl DreamstackApp {
                 "Run `netscan` to discover nearby servers.".to_string(),
             ];
             self.terminal_scanned = false;
+            self.terminal_server_scanned = false;
             self.connected_server = None;
             self.root_server = None;
             self.backdoor_server = None;
@@ -171,6 +172,7 @@ impl DreamstackApp {
 
         self.terminal_lines
             .push(format!("disconnected from {hostname}; returned home"));
+        self.terminal_server_scanned = false;
     }
 
     fn connect_server(&mut self, hostname: &str) {
@@ -192,6 +194,7 @@ impl DreamstackApp {
         };
 
         self.connected_server = Some(server.name.clone());
+        self.terminal_server_scanned = false;
         self.terminal_lines
             .push(format!("connected to {}", server.name));
         self.terminal_lines
@@ -227,6 +230,7 @@ impl DreamstackApp {
         self.terminal_lines.push(
             "Run `nuke`; if successful, it will give you root access to the server.".to_string(),
         );
+        self.terminal_server_scanned = true;
     }
 
     fn nuke_connected_server(&mut self) {
@@ -421,6 +425,7 @@ mod tests {
             tutorial: tutorial_1(),
             screen: Screen::Terminal,
             terminal_scanned: true,
+            terminal_server_scanned: true,
             connected_server: Some("server0".to_string()),
             root_server: Some("server0".to_string()),
             backdoor_server: Some("server0".to_string()),

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::player::SavedPlayer;
 
-const SAVE_VERSION: u64 = 2;
+const SAVE_VERSION: u64 = 3;
 const AUTOSAVE_PATH: &str = "autosave.json";
 #[cfg(not(target_arch = "wasm32"))]
 const AUTOSAVE_TMP_PATH: &str = "autosave.json.tmp";
@@ -43,6 +43,7 @@ pub(crate) struct SavedApp {
     pub(crate) terminal_input: String,
     pub(crate) terminal_lines: Vec<String>,
     pub(crate) terminal_scanned: bool,
+    pub(crate) terminal_server_scanned: bool,
     pub(crate) connected_server: Option<String>,
     pub(crate) root_server: Option<String>,
     pub(crate) backdoor_server: Option<String>,
@@ -133,6 +134,35 @@ struct V1SaveState {
     tutorial: SavedTutorial,
 }
 
+#[derive(Debug, Deserialize)]
+struct V2SaveFile {
+    state: V2SaveState,
+}
+
+#[derive(Debug, Deserialize)]
+struct V2SaveState {
+    player: SavedPlayer,
+    active_tutorial: u8,
+    tutorial: SavedTutorial,
+    app: V2SavedApp,
+}
+
+#[derive(Debug, Deserialize)]
+struct V2SavedApp {
+    screen: SavedScreen,
+    terminal_input: String,
+    terminal_lines: Vec<String>,
+    terminal_scanned: bool,
+    connected_server: Option<String>,
+    root_server: Option<String>,
+    backdoor_server: Option<String>,
+    hack_execution: Option<SavedHackExecution>,
+    editor_unlocked: bool,
+    editor_text: String,
+    editor_output: Vec<String>,
+    company_reputation_rate_favor: f64,
+}
+
 impl V1SaveFile {
     fn migrate(self) -> SaveFile {
         SaveFile {
@@ -154,6 +184,7 @@ impl SavedApp {
             terminal_input: String::new(),
             terminal_lines: Vec::new(),
             terminal_scanned: false,
+            terminal_server_scanned: false,
             connected_server: None,
             root_server: None,
             backdoor_server: None,
@@ -162,6 +193,35 @@ impl SavedApp {
             editor_text: crate::default_editor_text(),
             editor_output: Vec::new(),
             company_reputation_rate_favor: 0.0,
+        }
+    }
+}
+
+impl V2SaveFile {
+    fn migrate(self) -> SaveFile {
+        let app = self.state.app;
+        SaveFile {
+            meta: SaveMeta { version: 2 },
+            state: SaveState {
+                player: self.state.player,
+                active_tutorial: self.state.active_tutorial,
+                tutorial: self.state.tutorial,
+                app: SavedApp {
+                    screen: app.screen,
+                    terminal_input: app.terminal_input,
+                    terminal_lines: app.terminal_lines,
+                    terminal_scanned: app.terminal_scanned,
+                    terminal_server_scanned: false,
+                    connected_server: app.connected_server,
+                    root_server: app.root_server,
+                    backdoor_server: app.backdoor_server,
+                    hack_execution: app.hack_execution,
+                    editor_unlocked: app.editor_unlocked,
+                    editor_text: app.editor_text,
+                    editor_output: app.editor_output,
+                    company_reputation_rate_favor: app.company_reputation_rate_favor,
+                },
+            },
         }
     }
 }
@@ -199,6 +259,9 @@ pub(crate) fn parse_save_file(json: &str) -> io::Result<SaveFile> {
     match version {
         1 => serde_json::from_str::<V1SaveFile>(json)
             .map(V1SaveFile::migrate)
+            .map_err(io::Error::other),
+        2 => serde_json::from_str::<V2SaveFile>(json)
+            .map(V2SaveFile::migrate)
             .map_err(io::Error::other),
         SAVE_VERSION => serde_json::from_str(json).map_err(io::Error::other),
         version => Err(io::Error::other(format!(
@@ -292,6 +355,7 @@ mod tests {
                 terminal_input: "scan".to_string(),
                 terminal_lines: vec!["connected to home server: dreamstack".to_string()],
                 terminal_scanned: true,
+                terminal_server_scanned: true,
                 connected_server: Some("server0".to_string()),
                 root_server: Some("server0".to_string()),
                 backdoor_server: Some("server0".to_string()),
@@ -310,7 +374,7 @@ mod tests {
         insta::assert_snapshot!(serde_json::to_string_pretty(&save_file).unwrap(), @r#"
         {
           "meta": {
-            "version": 2
+            "version": 3
           },
           "state": {
             "player": {
@@ -342,6 +406,7 @@ mod tests {
                 "connected to home server: dreamstack"
               ],
               "terminal_scanned": true,
+              "terminal_server_scanned": true,
               "connected_server": "server0",
               "root_server": "server0",
               "backdoor_server": "server0",
@@ -395,10 +460,62 @@ mod tests {
         assert_eq!(save_file.state.active_tutorial, 1);
         assert_eq!(save_file.state.tutorial.elapsed_seconds, 28_800);
         assert_eq!(save_file.state.app.screen, SavedScreen::Intro);
+        assert!(!save_file.state.app.terminal_server_scanned);
         assert_eq!(
             save_file.state.app.editor_text,
             crate::default_editor_text()
         );
+    }
+
+    #[test]
+    fn migrates_v2_save_format() {
+        let save_file = parse_save_file(
+            r#"
+            {
+              "meta": { "version": 2 },
+              "state": {
+                "player": {
+                  "money": 880.0,
+                  "charisma_experience": 576.0,
+                  "charisma_skill": 1,
+                  "hack_experience": 25.0,
+                  "hack_skill": 1,
+                  "botanical_gardens": -1.0,
+                  "company_standings": []
+                },
+                "active_tutorial": 1,
+                "tutorial": {
+                  "elapsed_seconds": 28800,
+                  "active_job": {
+                    "employer_name": "employer0",
+                    "job_name": "employee"
+                  }
+                },
+                "app": {
+                  "screen": "terminal",
+                  "terminal_input": "scan",
+                  "terminal_lines": ["connected"],
+                  "terminal_scanned": true,
+                  "connected_server": "server0",
+                  "root_server": null,
+                  "backdoor_server": null,
+                  "hack_execution": null,
+                  "editor_unlocked": false,
+                  "editor_text": "fn main(ds) {}",
+                  "editor_output": [],
+                  "company_reputation_rate_favor": 0.0
+                }
+              }
+            }
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(save_file.state.active_tutorial, 1);
+        assert_eq!(save_file.state.app.terminal_input, "scan");
+        assert!(save_file.state.app.terminal_scanned);
+        assert!(!save_file.state.app.terminal_server_scanned);
+        assert_eq!(save_file.state.app.connected_server.as_deref(), Some("server0"));
     }
 
     #[test]

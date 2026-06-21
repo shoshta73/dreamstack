@@ -86,6 +86,7 @@ pub(crate) struct DreamstackApp {
     pub(crate) terminal_input: String,
     pub(crate) terminal_lines: Vec<String>,
     pub(crate) terminal_scanned: bool,
+    pub(crate) terminal_server_scanned: bool,
     pub(crate) connected_server: Option<String>,
     pub(crate) root_server: Option<String>,
     pub(crate) backdoor_server: Option<String>,
@@ -138,6 +139,7 @@ impl Default for DreamstackApp {
             terminal_input: String::new(),
             terminal_lines: Vec::new(),
             terminal_scanned: false,
+            terminal_server_scanned: false,
             connected_server: None,
             root_server: None,
             backdoor_server: None,
@@ -213,6 +215,7 @@ impl DreamstackApp {
             terminal_input: saved_app.terminal_input,
             terminal_lines: saved_app.terminal_lines,
             terminal_scanned: saved_app.terminal_scanned,
+            terminal_server_scanned: saved_app.terminal_server_scanned,
             connected_server,
             root_server,
             backdoor_server,
@@ -621,6 +624,7 @@ impl DreamstackApp {
             terminal_input: self.terminal_input.clone(),
             terminal_lines: self.terminal_lines.clone(),
             terminal_scanned: self.terminal_scanned,
+            terminal_server_scanned: self.terminal_server_scanned,
             connected_server: self.connected_server.clone(),
             root_server: self.root_server.clone(),
             backdoor_server: self.backdoor_server.clone(),
@@ -776,6 +780,7 @@ mod tests {
                 terminal_input: "scan".to_string(),
                 terminal_lines: vec!["connected".to_string()],
                 terminal_scanned: true,
+                terminal_server_scanned: true,
                 connected_server: Some("server0".to_string()),
                 root_server: Some("server0".to_string()),
                 backdoor_server: Some("server0".to_string()),
@@ -799,6 +804,7 @@ mod tests {
         assert_eq!(app.terminal_input, "scan");
         assert_eq!(app.terminal_lines, vec!["connected"]);
         assert!(app.terminal_scanned);
+        assert!(app.terminal_server_scanned);
         assert_eq!(app.connected_server.as_deref(), Some("server0"));
         assert_eq!(app.root_server.as_deref(), Some("server0"));
         assert_eq!(app.backdoor_server.as_deref(), Some("server0"));
@@ -856,6 +862,7 @@ mod tests {
                 terminal_input: String::new(),
                 terminal_lines: Vec::new(),
                 terminal_scanned: true,
+                terminal_server_scanned: true,
                 connected_server: Some("missing".to_string()),
                 root_server: Some("missing".to_string()),
                 backdoor_server: Some("missing".to_string()),
