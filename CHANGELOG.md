@@ -2,6 +2,12 @@
 
 All notable changes to Dreamstack will be documented in this file.
 
+## Unreleased
+
+### Persistence
+
+- Fixed autosave loading on native and web, expanded saved state coverage, and kept existing v1 saves readable.
+
 ## 26w25h [2026-06-19]
 
 ### Fixed
