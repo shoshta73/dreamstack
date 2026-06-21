@@ -41,10 +41,11 @@ impl DreamstackApp {
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
                     ui.monospace(self.terminal_prompt());
+                    let hint_text = self.terminal_hint_text();
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut self.terminal_input)
                             .desired_width(f32::INFINITY)
-                            .hint_text("netscan")
+                            .hint_text(hint_text)
                             .text_color(terminal_text)
                             .frame(egui::Frame::NONE),
                     );
@@ -161,6 +162,36 @@ impl DreamstackApp {
         } else {
             "home@dreamstack:~$".to_string()
         }
+    }
+
+    fn terminal_hint_text(&self) -> String {
+        if self.hack_execution.is_some() {
+            return String::new();
+        }
+        if !self.terminal_scanned {
+            return "netscan".to_string();
+        }
+
+        let Some(hostname) = self.connected_server.as_deref() else {
+            let hostname = self
+                .tutorial
+                .servers
+                .first()
+                .map_or("<hostname>", |server| server.name.as_str());
+            return format!("connect {hostname}");
+        };
+
+        if !self.terminal_server_scanned {
+            return "scan".to_string();
+        }
+        if self.root_server.as_deref() != Some(hostname) {
+            return "nuke".to_string();
+        }
+        if self.backdoor_server.as_deref() != Some(hostname) {
+            return "npm i -g backdoor".to_string();
+        }
+
+        "hack".to_string()
     }
 
     fn return_home(&mut self) {
@@ -433,6 +464,47 @@ mod tests {
         };
         app.clock.advance_by(app.tutorial.duration_seconds);
         app
+    }
+
+    fn app_ready_for_terminal() -> DreamstackApp {
+        let mut app = DreamstackApp {
+            tutorial: tutorial_1(),
+            screen: Screen::Terminal,
+            ..DreamstackApp::default()
+        };
+        app.clock.advance_by(app.tutorial.duration_seconds);
+        app.open_terminal();
+        app
+    }
+
+    #[test]
+    fn terminal_hint_tracks_command_progression() {
+        let mut app = app_ready_for_terminal();
+
+        assert_eq!(app.terminal_hint_text(), "netscan");
+
+        app.run_netscan();
+        assert_eq!(app.terminal_hint_text(), "connect server0");
+
+        app.connect_server("server0");
+        assert_eq!(app.terminal_hint_text(), "scan");
+
+        app.scan_connected_server();
+        assert_eq!(app.terminal_hint_text(), "nuke");
+
+        app.nuke_connected_server();
+        assert_eq!(app.terminal_hint_text(), "npm i -g backdoor");
+
+        app.install_backdoor();
+        assert_eq!(app.terminal_hint_text(), "hack");
+    }
+
+    #[test]
+    fn terminal_hint_is_empty_while_hack_runs() {
+        let mut app = app_ready_to_hack();
+        app.hack_connected_server();
+
+        assert_eq!(app.terminal_hint_text(), "");
     }
 
     #[test]
