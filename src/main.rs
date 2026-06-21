@@ -19,12 +19,16 @@ use game::{
     Clock, Tutorial, company_reputation_rate_multiplier, tutorial_0, tutorial_1, tutorial_2,
 };
 use player::Player;
-use save::{SaveFile, SavedActiveJob, write_autosave};
+use save::{SaveFile, SavedActiveJob, SavedApp, SavedHackExecution, SavedScreen, write_autosave};
 #[cfg(not(target_arch = "wasm32"))]
 use tracing::info;
 
 const AUTOSAVE_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
 pub(crate) const GAME_SECONDS_PER_REAL_SECOND: f64 = 60.0;
+
+pub(crate) fn default_editor_text() -> String {
+    "fn main(ds) {\n    ds_print(ds, \"hello from automation\");\n}\n".to_string()
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) type FrameTime = Instant;
@@ -136,8 +140,7 @@ impl Default for DreamstackApp {
             backdoor_server: None,
             hack_execution: None,
             editor_unlocked: false,
-            editor_text: "fn main(ds) {\n    ds_print(ds, \"hello from automation\");\n}\n"
-                .to_string(),
+            editor_text: default_editor_text(),
             editor_output: Vec::new(),
             company_reputation_rate_favor: 0.0,
             last_frame_at: None,
@@ -504,13 +507,7 @@ impl DreamstackApp {
         let employer_name = self.employer().name.clone();
         let job_name = self.job().name.clone();
 
-        match write_tutorial_autosave(
-            &self.player,
-            self.tutorial.number,
-            &self.clock,
-            &employer_name,
-            &job_name,
-        ) {
+        match write_tutorial_autosave(self, &employer_name, &job_name) {
             Ok(()) => {
                 if self.save_status.is_empty() {
                     self.save_status = "Autosaved.".to_string();
@@ -524,18 +521,60 @@ impl DreamstackApp {
 }
 
 fn write_tutorial_autosave(
-    player: &Player,
-    active_tutorial: u8,
-    clock: &Clock,
+    app: &DreamstackApp,
     employer_name: &str,
     job_name: &str,
 ) -> io::Result<()> {
     let save_file = SaveFile::new(
-        player.to_save(),
-        active_tutorial,
-        clock.elapsed_seconds(),
+        app.player.to_save(),
+        app.tutorial.number,
+        app.clock.elapsed_seconds(),
         Some(SavedActiveJob::new(employer_name, job_name)),
+        app.to_saved_app(),
     );
 
     write_autosave(&save_file)
+}
+
+impl DreamstackApp {
+    fn to_saved_app(&self) -> SavedApp {
+        SavedApp {
+            screen: self.screen.to_save(),
+            terminal_input: self.terminal_input.clone(),
+            terminal_lines: self.terminal_lines.clone(),
+            terminal_scanned: self.terminal_scanned,
+            connected_server: self.connected_server.clone(),
+            root_server: self.root_server.clone(),
+            backdoor_server: self.backdoor_server.clone(),
+            hack_execution: self.hack_execution.as_ref().map(HackExecution::to_save),
+            editor_unlocked: self.editor_unlocked,
+            editor_text: self.editor_text.clone(),
+            editor_output: self.editor_output.clone(),
+            company_reputation_rate_favor: self.company_reputation_rate_favor,
+        }
+    }
+}
+
+impl Screen {
+    fn to_save(&self) -> SavedScreen {
+        match self {
+            Screen::Intro => SavedScreen::Intro,
+            Screen::Working => SavedScreen::Working,
+            Screen::TerminalPrompt => SavedScreen::TerminalPrompt,
+            Screen::Terminal => SavedScreen::Terminal,
+            Screen::Editor => SavedScreen::Editor,
+            Screen::Complete => SavedScreen::Complete,
+            Screen::Finished => SavedScreen::Finished,
+        }
+    }
+}
+
+impl HackExecution {
+    fn to_save(&self) -> SavedHackExecution {
+        SavedHackExecution {
+            hostname: self.hostname.clone(),
+            elapsed_seconds: self.elapsed_seconds,
+            duration_seconds: self.duration_seconds,
+        }
+    }
 }
